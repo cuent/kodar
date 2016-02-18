@@ -1,0 +1,13 @@
+/Job/mahout-base/clusteredPosts/
+/Job/mahout-base/kmeans/
+/Job/mahout-base/final.rdf
+/Job/mahout-base/sequence/
+/Job/mahout-base/sort/
+/Job/mahout-base/result/
+/Job/mahout-base/pointsToClusters/
+/Job/mahout-base/seed/
+/Job/mahout-base/named-clusters
+/Job/mahout-base/final.csv
+/Job/mahout-base/sparse/
+/Job/mahout-base/final.json
+/Job/mahout-base/topmodel/
