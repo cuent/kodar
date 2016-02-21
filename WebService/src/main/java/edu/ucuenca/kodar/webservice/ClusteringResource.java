@@ -17,7 +17,6 @@
  */
 package edu.ucuenca.kodar.webservice;
 
-import edu.ucuenca.kodar.clusters.Execute;
 import edu.ucuenca.kodar.utils.Script;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -106,24 +105,19 @@ public class ClusteringResource {
     @Path("execute")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public Response clusteringExecution(InputStream inputStreamAuthors) throws Exception {
-        String pathAuthors1 = BASEPATH + "original/authors1.csv";
-        String pathAuthors = BASEPATH + "original/authors.csv";
-        writeToFile(inputStreamAuthors, pathAuthors1);
+        String pathFile = BASEPATH + "original/original.csv";
+        writeToFile(inputStreamAuthors, pathFile);
 
-        String pathKeywords = BASEPATH + "original/keywords.csv";
-
-        String outputA = String.format("File uploaded to: %s", pathAuthors);
+        String outputA = String.format("File uploaded to: %s", pathFile);
         logger.log(Level.INFO, outputA);
-        String outputK = String.format("File uploaded to: %s", pathKeywords);
-        logger.log(Level.INFO, outputK);
 
         //Clustering c = new Clustering(pathAuthors, pathKeywords);
         //c.run();
-        String args[] = {pathAuthors, pathKeywords};
+        String args[] = {pathFile};
         //Execute.main(args);
         Script s = new Script();
         s.execute();
-        return Response.status(200).entity(outputA + "\n" + outputK).build();
+        return Response.status(200).entity(outputA + "\n").build();
     }
 
     // save uploaded file to new location
