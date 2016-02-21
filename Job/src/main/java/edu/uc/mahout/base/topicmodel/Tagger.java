@@ -28,7 +28,7 @@ public class Tagger {
         Configuration conf = new Configuration();
 
         //base.seqDirectoryToText(conf, "mahout-base/original/labels.csv", "mahout-base/topmodel/output");
-        mr.readTT(inputPath);
+        //mr.readTT(inputPath);
         //Generate Sparse Vectors
         String[] seq2sparse = new String[]{
             "-i", inputPath,

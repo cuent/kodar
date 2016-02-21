@@ -43,8 +43,8 @@ public class NameCluster {
         SequenceFile.Writer writeCluster = new SequenceFile.Writer(fs, conf, namedClusters, Text.class, Text.class);
 
         System.out.println("Reading: " + pathFileInput);
-        //while (reader.next(k, v)) {
-        for (int i = 0; i < 4; i++) {
+        while (reader.next(k, v)) {
+        //for (int i = 0; i < 2; i++) {
 
             reader.next(k, v);
             String[] values = v.toString().split(delimiter);
@@ -54,8 +54,7 @@ public class NameCluster {
             for (String value : values) {
                 kws = value.substring(value.indexOf(escapeContent) + escapeContent.length(),
                         value.indexOf(escapeAuthor));
-                title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length(),
-                        value.indexOf(espapeURIA));
+                title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
                 Category c = new Category(kws);
                 c.populate();
                 document = title + "\n" + kws + "\n" + c.toString();

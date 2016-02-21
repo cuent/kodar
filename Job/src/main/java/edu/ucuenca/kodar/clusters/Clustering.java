@@ -1,4 +1,4 @@
-/*
+        /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -24,13 +24,11 @@ import org.apache.mahout.common.distance.CosineDistanceMeasure;
 public class Clustering {
 
     private Date time;
-    private String pathAuthors;
-    private String pathKeywords;
-    private static final String FOLDER = System.getProperty("user.dir") + "/";
+    private String pathOriginal;
+    private static final String BASE_PATH = System.getProperty("user.dir") + "/";
 
-    public Clustering(String pathAuthors, String pathKeywords) {
-        this.pathAuthors = pathAuthors;
-        this.pathKeywords = pathKeywords;
+    public Clustering(String pathAuthors) {
+        this.pathOriginal = pathAuthors;
     }
 
     public void run() throws IOException, Exception {
@@ -38,17 +36,20 @@ public class Clustering {
         KODAWriter writer = KODAWriter.getWriteSequenceFile();
         ExportFileClusterig export = ExportFileClusterig.getExportFile();
 
+        writer.disjoin(pathOriginal);
+
         MahoutController mahout = new MahoutController();
+
         //Hadoop Configuration
         Configuration conf = new Configuration();
         //conf.set("fs.defaultFS", "hdfs://172.16.147.7:54310"); //set configuration of hadoop cluster
 
         //Convert raw files to SequenceFile format
-        mahout.seqDirectoryToText(conf, pathKeywords, FOLDER + "mahout-base/sequence/output");
+        mahout.seqDirectoryToText(conf, BASE_PATH + "mahout-base/original/keywords.csv", BASE_PATH + "mahout-base/sequence/output");
         //mr.readTT("mahout-base/sequence/output");
-        mahout.seqDirectoryToLong(conf, pathKeywords, FOLDER + "mahout-base/sequence/outputLong");
+        mahout.seqDirectoryToLong(conf, BASE_PATH + "mahout-base/original/keywords.csv", BASE_PATH + "mahout-base/sequence/outputLong");
         //mr.readLT("mahout-base/sequence/outputLong");
-        mahout.seqDirectoryToLong(conf, pathAuthors, FOLDER + "mahout-base/sequence/outputAuthors");
+        mahout.seqDirectoryToLong(conf, BASE_PATH + "mahout-base/original/authors.csv", BASE_PATH + "mahout-base/sequence/outputAuthors");
         //mr.readLT("mahout-base/sequence/outputAuthors");
 
         //Generate Sparse Vectors
@@ -64,7 +65,7 @@ public class Clustering {
         };
         mahout.seq2Sparse(conf, seq2sparse);
         //mr.readTI("mahout-base/sparse/dictionary.file-0");
-        writer.writeVector("mahout-base/sparse/tfidf-vectors/part-r-00000", "mahout-base/sparse/");
+        writer.writeVector(BASE_PATH + "mahout-base/sparse/tfidf-vectors/part-r-00000", BASE_PATH + "mahout-base/sparse/");
         //mr.readTL("mahout-base/sparse/wordcount/ngrams/part-r-00000");
         //mr.readTL("mahout-base/sparse/wordcount/subgrams/part-r-00000");
 
@@ -75,15 +76,15 @@ public class Clustering {
             "-c", "mahout-base/seed",
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
-            "-k", "2000",
+            "-k", "200",
             "-cl",
             "-xm", "sequential",
             "-ow"
 
         };
         mahout.kmeans(conf, kmeans);
-        reader.readTC("mahout-base/seed/part-randomSeed");
-        reader.readIW("mahout-base/kmeans/clusteredPoints/part-m-0");
+        //reader.readTC("mahout-base/seed/part-randomSeed");
+        //reader.readIW("mahout-base/kmeans/clusteredPoints/part-m-0");
         writer.writeClusterVector("mahout-base/kmeans/clusteredPoints/part-m-0", "mahout-base/kmeans/");
         //mr.readIC("mahout-base/kmeans/clusters-1-final/part-00000");
         //mr.readIC("mahout-base/kmeans/clusters-1-final/part-00001");

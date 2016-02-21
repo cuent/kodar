@@ -70,15 +70,15 @@ public class JoinKeywordsAuthorMapperJob extends Configured {
             Text output;
 
             if (data.length == 4) {
-                output = new Text(keyCluster.toString() + " Author: " + data[0] + " Title: " + data[1]
-                        + " URI_A: " + data[2] + " URI_P: " + data[3]);
+                output = new Text(keyCluster.toString() + " Author: " + data[0] + " URI_A: " + data[1]
+                        + " URI_P: " + data[2] + " Title: " + data[3]);
             } else if (data.length == 3) { //Author doesn't have a publication URI
-                output = new Text(keyCluster.toString() + " Author: " + data[0] + " Title: " + data[1]
-                        + " URI_A: " + data[2] + " URI_P: " + " ");
-            }else if (data.length==1){
-                output = new Text(keyCluster.toString() + " Author: " + data[0] + " Title: " + " "
-                        + " URI_A: " + " " + " URI_P: " + " ");
-            }else{
+                output = new Text(keyCluster.toString() + " Author: " + data[0] + " URI_A: " + data[1]
+                        + " URI_P: " + " " + " Title: " + data[2]);
+            } else if (data.length == 1) {
+                output = new Text(keyCluster.toString() + " Author: " + data[0] + " URI_A: " + " "
+                        + " URI_P: " + " " + " Title: " + " ");
+            } else {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
 

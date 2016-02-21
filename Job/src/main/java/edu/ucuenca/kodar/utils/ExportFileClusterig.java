@@ -29,8 +29,8 @@ public class ExportFileClusterig {
     private static ExportFileClusterig instanceExport = new ExportFileClusterig();
     private static final String delimiter = "2db5c8";
     private static final String kw1 = "Cluster Id: ",
-            kw2 = "Content: ", kw3 = " Author: ", kw4 = " Title: ",
-            kw5 = " URI_A: ", kw6 = " URI_P: ";
+            kw2 = "Content: ", kw3 = " Author: ", kw6 = " Title: ",
+            kw4 = " URI_A: ", kw5 = " URI_P: ";
 
     private ExportFileClusterig() {
     }
@@ -65,9 +65,9 @@ public class ExportFileClusterig {
                 String cluster = value.substring(value.indexOf(kw1) + kw1.length(), value.indexOf(kw2));
                 String kw = value.substring(value.indexOf(kw2) + kw2.length(), value.indexOf(kw3));
                 String author = value.substring(value.indexOf(kw3) + kw3.length(), value.indexOf(kw4));
-                String title = value.substring(value.indexOf(kw4) + kw4.length(), value.indexOf(kw5));
-                String uriA = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));
-                String uriP = value.substring(value.indexOf(kw6) + kw6.length());
+                String uriA = value.substring(value.indexOf(kw4) + kw4.length(), value.indexOf(kw5));
+                String uriP = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));
+                String title = value.substring(value.indexOf(kw6) + kw6.length());
                 bw.write(k.toString() + "," + author + "," + kw + "," + title + "," + uriA + "," + uriP);
                 bw.write(newline);
             }
@@ -116,7 +116,7 @@ public class ExportFileClusterig {
                 uriP = value.substring(value.indexOf(kw6) + kw6.length());//.replace(",", "");
 
                 if (!uriA.trim().equals("") && !uriP.trim().equals("")) {
-                //uriA = URIUtil.encodeQuery(uriA);
+                    //uriA = URIUtil.encodeQuery(uriA);
                     //uriP = URIUtil.encodeQuery(uriP);
 
                     model.createResource(clusterURI + k.toString()).addProperty(hasPerson, model.createResource(uriA));
@@ -164,9 +164,9 @@ public class ExportFileClusterig {
                 String cluster = value.substring(value.indexOf(kw1) + kw1.length(), value.indexOf(kw2));
                 String kw = value.substring(value.indexOf(kw2) + kw2.length(), value.indexOf(kw3));
                 String author = value.substring(value.indexOf(kw3) + kw3.length(), value.indexOf(kw4));
-                String title = value.substring(value.indexOf(kw4) + kw4.length(), value.indexOf(kw5));
-                String uriA = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));
-                String uriP = value.substring(value.indexOf(kw6) + kw6.length());
+                String uriA = value.substring(value.indexOf(kw4) + kw4.length(), value.indexOf(kw5));
+                String uriP = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));
+                String title = value.substring(value.indexOf(kw6) + kw6.length());
 
                 Template template = new Template(k.toString(), kw, author, title, uriA, uriP);
 
