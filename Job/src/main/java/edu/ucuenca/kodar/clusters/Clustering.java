@@ -54,8 +54,8 @@ public class Clustering {
 
         //Generate Sparse Vectors
         String[] seq2sparse = new String[]{
-            "-i", "mahout-base/sequence/output",
-            "-o", "mahout-base/sparse",
+            "-i", BASE_PATH + "mahout-base/sequence/output",
+            "-o", BASE_PATH + "mahout-base/sparse",
             "-x", "60",
             "-n", "2",
             "-ng", "2",
@@ -71,9 +71,9 @@ public class Clustering {
 
         //Run KMeans
         String[] kmeans = new String[]{
-            "-i", "mahout-base/sparse/tfidf-vectors",
-            "-o", "mahout-base/kmeans",
-            "-c", "mahout-base/seed",
+            "-i", BASE_PATH + "mahout-base/sparse/tfidf-vectors",
+            "-o", BASE_PATH + "mahout-base/kmeans",
+            "-c", BASE_PATH + "mahout-base/seed",
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
             "-k", "200",
@@ -85,7 +85,8 @@ public class Clustering {
         mahout.kmeans(conf, kmeans);
         //reader.readTC("mahout-base/seed/part-randomSeed");
         //reader.readIW("mahout-base/kmeans/clusteredPoints/part-m-0");
-        writer.writeClusterVector("mahout-base/kmeans/clusteredPoints/part-m-0", "mahout-base/kmeans/");
+        writer.writeClusterVector(BASE_PATH + "mahout-base/kmeans/clusteredPoints/part-m-0",
+                BASE_PATH + "mahout-base/kmeans/");
         //mr.readIC("mahout-base/kmeans/clusters-1-final/part-00000");
         //mr.readIC("mahout-base/kmeans/clusters-1-final/part-00001");
         //ClusterDumper clusterDumper = new ClusterDumper(new Path(
@@ -95,14 +96,14 @@ public class Clustering {
 //        );
         //clusterDumper.printClusters(null);
 
-        Path outputClusteringPath = new Path("mahout-base/", "kmeans");
+        Path outputClusteringPath = new Path(BASE_PATH + "mahout-base/", "kmeans");
         Path clusteredPointsPath = new Path(outputClusteringPath, "clusteredPoints");
         Path outputFinalClustersPath = new Path(outputClusteringPath, "clusters-*-final/*");
-        Path pointsToClusterPath = new Path("mahout-base/", "pointsToClusters");
-        Path clusteredPostsPath = new Path("mahout-base/", "clusteredPosts");
-        Path outputPostsPath = new Path("mahout-base/sequence/outputLong");
-        Path resultOutputPath = new Path("mahout-base/", "result");
-        Path authorsPath = new Path("mahout-base/sequence/outputAuthors");
+        Path pointsToClusterPath = new Path(BASE_PATH + "mahout-base/", "pointsToClusters");
+        Path clusteredPostsPath = new Path(BASE_PATH + "mahout-base/", "clusteredPosts");
+        Path outputPostsPath = new Path(BASE_PATH + "mahout-base/sequence/outputLong");
+        Path resultOutputPath = new Path(BASE_PATH + "mahout-base/", "result");
+        Path authorsPath = new Path(BASE_PATH + "mahout-base/sequence/outputAuthors");
 
         //Delete File 
         HadoopUtil.delete(conf, pointsToClusterPath, clusteredPostsPath, resultOutputPath);
@@ -112,37 +113,35 @@ public class Clustering {
         pointsToClusterMappingJob.setConf(conf);
         pointsToClusterMappingJob.mapPointsToClusters();
 
-        reader.readLI("mahout-base/pointsToClusters/part-r-00000");
-
+        //reader.readLI("mahout-base/pointsToClusters/part-r-00000");
         //Join pointsToClusters with keywords
         ClusterJoinerMapperJob clusterJoinerJob = new ClusterJoinerMapperJob(outputPostsPath, pointsToClusterPath, clusteredPostsPath);
         clusterJoinerJob.setConf(conf);
         clusterJoinerJob.run();
 
-        reader.readLT("mahout-base/clusteredPosts/part-00000");
-
+        //reader.readLT("mahout-base/clusteredPosts/part-00000");
         //Join clusteredKeywords with authors
         JoinKeywordsAuthorMapperJob joinKwAuthors = new JoinKeywordsAuthorMapperJob(clusteredPostsPath,
                 authorsPath, resultOutputPath);
         joinKwAuthors.setConf(conf);
         joinKwAuthors.run();
 
-        reader.readLT("mahout-base/result/part-00000");
-
-        Path clusters = new Path("mahout-base/result/part-00000");
-        Path output = new Path("mahout-base/", "sort");
+        //reader.readLT("mahout-base/result/part-00000");
+        Path clusters = new Path(BASE_PATH + "mahout-base/result/part-00000");
+        Path output = new Path(BASE_PATH + "mahout-base/", "sort");
         HadoopUtil.delete(conf, output);
         SortMapperJob sortByClusterId = new SortMapperJob(clusters, output);
         sortByClusterId.setConf(conf);
         sortByClusterId.run();
 
         NameCluster namedCluster = new NameCluster();
-        namedCluster.execute("mahout-base/sort/part-r-00000");
+        namedCluster.setConf(conf); 
+        namedCluster.execute(BASE_PATH + "mahout-base/sort/part-r-00000");
 
-        export.writeResultFileCSV("mahout-base/named-clusters", "mahout-base/final.csv");
+        export.writeResultFileCSV(BASE_PATH + "mahout-base/named-clusters", "mahout-base/final.csv");
         //export.writeResultFileCSV("mahout-base/result/part-00000", "mahout-base/final.csv");
-        export.writeResultFileJSON("mahout-base/named-clusters", "mahout-base/final.json");
-        export.writeResultFileRDF("mahout-base/named-clusters", "mahout-base/final.rdf");
+        export.writeResultFileJSON(BASE_PATH + "mahout-base/named-clusters", "mahout-base/final.json");
+        export.writeResultFileRDF(BASE_PATH + "mahout-base/named-clusters", "mahout-base/final.rdf");
     }
 
     public Date getTime() {

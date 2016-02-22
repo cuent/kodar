@@ -20,6 +20,8 @@ import org.apache.mahout.common.HadoopUtil;
  */
 public class Tagger {
 
+    private static final String BASE_PATH = System.getProperty("user.dir") + "/";
+
     public String tag(String inputPath) throws IOException, Exception {
         KODAReader mr = KODAReader.getReadSequenceFile();
         MahoutController base = new MahoutController();
@@ -32,7 +34,7 @@ public class Tagger {
         //Generate Sparse Vectors
         String[] seq2sparse = new String[]{
             "-i", inputPath,
-            "-o", "mahout-base/topmodel/sparse",
+            "-o", BASE_PATH + "mahout-base/topmodel/sparse",
             "--maxDFPercent", "60",
             "-n", "2",
             "-ng", "2",
@@ -51,20 +53,20 @@ public class Tagger {
 
         //Convert to <SequenceFile,SequenceFile>
         String[] rowIdArgs = new String[]{
-            "-i", "mahout-base/topmodel/sparse/tf-vectors",
-            "-o", "mahout-base/topmodel/convert"
+            "-i", BASE_PATH + "mahout-base/topmodel/sparse/tf-vectors",
+            "-o", BASE_PATH + "mahout-base/topmodel/convert"
         };
         base.rowId(conf, rowIdArgs);
 
-        Path path_cvb = new Path("mahout-base/topmodel/cvb");
+        Path path_cvb = new Path(BASE_PATH + "mahout-base/topmodel/cvb");
         HadoopUtil.delete(conf, path_cvb);
         //Run collapse variational bayes algorithm
         String[] cvb = new String[]{
-            "-i", "mahout-base/topmodel/convert/matrix",
-            "-dict", "mahout-base/topmodel/sparse/dictionary.file-*",
-            "-o", "mahout-base/topmodel/cvb/topic-term",
-            "-dt", "mahout-base/topmodel/cvb/doc-topic/topic-model-cvb",
-            "-mt", "mahout-base/topmodel/cvb",
+            "-i", BASE_PATH + "mahout-base/topmodel/convert/matrix",
+            "-dict", BASE_PATH + "mahout-base/topmodel/sparse/dictionary.file-*",
+            "-o", BASE_PATH + "mahout-base/topmodel/cvb/topic-term",
+            "-dt", BASE_PATH + "mahout-base/topmodel/cvb/doc-topic/topic-model-cvb",
+            "-mt", BASE_PATH + "mahout-base/topmodel/cvb",
             "-k", "1",
             "-x", "20",
             "-ow"
@@ -72,9 +74,9 @@ public class Tagger {
         base.collapsedVariationalBayes(conf, cvb);
 
         String[] vectorDump = new String[]{
-            "-i", "mahout-base/topmodel/cvb/topic-term/",
-            "-o", "mahout-base/topmodel/vectorDump",
-            "-d", "mahout-base/topmodel/sparse/dictionary.file-0",
+            "-i", BASE_PATH + "mahout-base/topmodel/cvb/topic-term/",
+            "-o", BASE_PATH + "mahout-base/topmodel/vectorDump",
+            "-d", BASE_PATH + "mahout-base/topmodel/sparse/dictionary.file-0",
             "-vs", "1",
             "-dt", "sequencefile",
             "-p", "true",
@@ -83,7 +85,7 @@ public class Tagger {
         base.vectorDump(vectorDump);
 
         //Read label from text file
-        BufferedReader br = new BufferedReader(new FileReader("mahout-base/topmodel/vectorDump"));
+        BufferedReader br = new BufferedReader(new FileReader(BASE_PATH + "mahout-base/topmodel/vectorDump"));
         String line = br.readLine();
         if (line != null) {
             line = line.substring(line.indexOf("{") + 1, line.indexOf(":"));

@@ -23,13 +23,13 @@ import org.apache.mahout.common.HadoopUtil;
  */
 public class NameCluster {
 
+    private Configuration conf;
     private static final String delimiter = "2db5c8", escapeContent = " Content: ", escapeAuthor = " Author:",
             escapeTitle = " Title: ", espapeURIA = " URI_A: ";
 
     public void execute(String pathFileInput) throws IOException, JWNLException, Exception {
         Path path = new Path(pathFileInput);
 
-        Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
         Path temp = new Path("mahout-base/topmodel/temp/", "part000");
         Path namedClusters = new Path("mahout-base/", "named-clusters");
@@ -44,7 +44,7 @@ public class NameCluster {
 
         System.out.println("Reading: " + pathFileInput);
         while (reader.next(k, v)) {
-        //for (int i = 0; i < 2; i++) {
+            //for (int i = 0; i < 2; i++) {
 
             reader.next(k, v);
             String[] values = v.toString().split(delimiter);
@@ -70,4 +70,13 @@ public class NameCluster {
         }
         writeCluster.close();
     }
+
+    public Configuration getConf() {
+        return conf;
+    }
+
+    public void setConf(Configuration conf) {
+        this.conf = conf;
+    }
+
 }
