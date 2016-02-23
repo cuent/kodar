@@ -86,7 +86,7 @@ public class ExportFileClusterig {
         //property foaf:publication
         Property foafPublication = model.createProperty("http://xmlns.com/foaf/0.1/publications");
         //property hasPerson
-        Property hasPerson = model.createProperty("http://ucuenca.edu.ec/resource/hasPerson");
+        Property hasPerson = model.createProperty("http://ucuenca.edu.ec/ontology#hasPerson");
 
         Path path = new Path(pathFileInput);
 
@@ -112,8 +112,8 @@ public class ExportFileClusterig {
             String[] values = v.toString().split(delimiter);
             for (String value : values) {
                 cluster = value.substring(value.indexOf(kw1) + kw1.length(), value.indexOf(kw2)).trim();
-                uriA = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));//.replace(",", "");
-                uriP = value.substring(value.indexOf(kw6) + kw6.length());//.replace(",", "");
+                uriA = value.substring(value.indexOf(kw4) + kw4.length(), value.indexOf(kw5));//.replace(",", "");
+                uriP = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));//.replace(",", "");
 
                 if (!uriA.trim().equals("") && !uriP.trim().equals("")) {
                     //uriA = URIUtil.encodeQuery(uriA);
