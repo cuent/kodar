@@ -19,6 +19,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.vocabulary.RDFS;
 
 /**
  *
@@ -119,7 +121,9 @@ public class ExportFileClusterig {
                     //uriA = URIUtil.encodeQuery(uriA);
                     //uriP = URIUtil.encodeQuery(uriP);
 
-                    model.createResource(clusterURI + k.toString()).addProperty(hasPerson, model.createResource(uriA));
+                    Resource r = model.createResource(clusterURI + cluster);
+                    r.addProperty(hasPerson, model.createResource(uriA));
+                    r.addProperty(RDFS.label, k.toString());
                     model.createResource(uriA).addProperty(foafPublication, model.createResource(uriP));
                 }
             }
