@@ -1,7 +1,7 @@
-data <- read.csv(file="/Users/cuent/NetBeansProjects/kodar/mahout-base/sparse/tfidf.csv",header = TRUE,sep=",",stringsAsFactors = F)
-data=data[c(1:2801)]
-data[c(1:2801)] <- 
-  lapply( data[c(1:2801)], 
+data <- read.csv(file="/Users/cuent/NetBeansProjects/KODAR/Job/mahout-base/sparse/tfidf.csv",header = TRUE,sep=",",stringsAsFactors = F)
+data=data[c(1:4314)]
+data[c(1:4314)] <- 
+  lapply( data[c(1:4314)], 
           function(x) { as.integer(gsub(',', '', x) )})
 pca_existing <- prcomp(data, scale. = TRUE)
 plot(pca_existing)
