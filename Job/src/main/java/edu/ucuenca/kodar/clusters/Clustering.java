@@ -37,10 +37,12 @@ public class Clustering {
 
     private Date time;
     private String pathOriginal;
+    private boolean translate;
     private static final String BASE_PATH = System.getProperty("user.dir") + "/";
 
-    public Clustering(String pathAuthors) {
+    public Clustering(String pathAuthors, boolean translate) {
         this.pathOriginal = pathAuthors;
+        this.translate = translate;
     }
 
     public void run() throws IOException, Exception {
@@ -48,7 +50,7 @@ public class Clustering {
         KODAWriter writer = KODAWriter.getWriteSequenceFile();
         ExportFileClusterig export = ExportFileClusterig.getExportFile();
 
-        writer.disjoin(pathOriginal);
+        writer.disjoin(pathOriginal,translate);
 
         MahoutController mahout = new MahoutController();
 
@@ -88,7 +90,7 @@ public class Clustering {
             "-c", BASE_PATH + "mahout-base/seed",
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
-            "-k", "700",
+            "-k", "173",
             "-cl",
             "-xm", "sequential",
             "-ow"
@@ -147,7 +149,7 @@ public class Clustering {
         sortByClusterId.run();
 
         NameCluster namedCluster = new NameCluster();
-        namedCluster.setConf(conf); 
+        namedCluster.setConf(conf);
         namedCluster.execute(BASE_PATH + "mahout-base/sort/part-r-00000");
 
         export.writeResultFileCSV(BASE_PATH + "mahout-base/named-clusters", "mahout-base/final.csv");
