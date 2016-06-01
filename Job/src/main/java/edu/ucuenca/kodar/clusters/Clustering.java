@@ -19,8 +19,8 @@ package edu.ucuenca.kodar.clusters;
 
 import edu.uc.mahout.base.topicmodel.SortMapperJob;
 import edu.ucuenca.kodar.utils.ExportFileClusterig;
-import edu.ucuenca.kodar.utils.KODAWriter;
 import edu.ucuenca.kodar.utils.KODAReader;
+import edu.ucuenca.kodar.utils.KODAWriter;
 import edu.ucuenca.kodar.utils.NameCluster;
 import java.io.IOException;
 import java.util.Date;
@@ -90,7 +90,7 @@ public class Clustering {
             "-c", BASE_PATH + "mahout-base/seed",
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
-            "-k", "173",
+            "-k", "10",
             "-cl",
             "-xm", "sequential",
             "-ow"
