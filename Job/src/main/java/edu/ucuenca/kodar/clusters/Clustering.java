@@ -90,7 +90,7 @@ public class Clustering {
             "-c", BASE_PATH + "mahout-base/seed",
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
-            "-k", "10",
+            "-k", "100",
             "-cl",
             "-xm", "sequential",
             "-ow"
