@@ -1,0 +1,10 @@
+pathCSV <- "/Users/cuent/NetBeansProjects/KODAR/Job/mahout-base/sparse/tfidf.csv"
+library(reshape2)
+library(reshape2)
+library(ggplot2)
+library(SparseM)
+data <- read.csv(pathCSV, header = FALSE, sep = ",")
+numcol <- ncol(data)
+dMatrix <- matrix(unlist(data), ncol = numcol, byrow = TRUE)
+dMatrix.csr <- as.matrix.csr(dMatrix)
+image(dMatrix.csr, col=c("white","blue"), xlab="x", ylab="y")

@@ -13,5 +13,5 @@ g <- g + theme(legend.direction = 'horizontal',
                legend.position = 'top')
 print(g)
 
-pathToSave <- "Desktop/R Scripts/vectors/vectors.png"
+pathToSave <- "NetbeansProjects/KODAR/R/vectors/vectors.png"
 ggsave(pathToSave)
