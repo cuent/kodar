@@ -17,7 +17,9 @@
  */
 package edu.ucuenca.kodar.clusters;
 
+import java.io.File;
 import java.io.IOException;
+import org.apache.hadoop.fs.Path;
 
 /**
  *
@@ -25,12 +27,32 @@ import java.io.IOException;
  */
 public interface Controller {
 
-    public void seqDirectoryToText(String inputFile, String outputFile) throws IOException;
+    public void rawToSequenceTextKey(File inputFile, Path outputFile, String delimiter) throws IOException;
 
-    public void seqDirectoryToLong(String inputFile, String outputFile) throws IOException;
+    public void rawToSequenceLongKey(File inputFile, Path outputFile, String delimiter) throws IOException;
 
+    /**
+     * Generate vectors from a sequence file.
+     *
+     * @see
+     * <a href="https://mahout.apache.org/users/basics/creating-vectors-from-text.html">Creating
+     * Vectors from SequenceFile</a> to know more about the parameters.
+     *
+     * @param seq2SparseArgs vectors of parameters
+     * @throws Exception
+     */
     public void seq2Sparse(String[] seq2SparseArgs) throws Exception;
 
+    /**
+     * K-means clustering algorithm.
+     *
+     * @see
+     * <a href="https://mahout.apache.org/users/clustering/k-means-clustering.html">K-Means
+     * Clustering</a> to know more about the parameters.
+     *
+     * @param kmeansArgs vector of parameters
+     * @throws Exception
+     */
     public void kmeans(String[] kmeansArgs) throws Exception;
 
     public void clusterDumper(String[] clusterDumperArgs) throws Exception;
@@ -40,4 +62,5 @@ public interface Controller {
     public void rowId(String[] rowIdArgs) throws Exception;
 
     public void vectorDump(String[] vectorDumpArgs) throws Exception;
+
 }

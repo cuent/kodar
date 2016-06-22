@@ -18,6 +18,7 @@
 package edu.ucuenca.kodar.clusters;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
@@ -40,22 +41,22 @@ import org.apache.mahout.vectorizer.SparseVectorsFromSequenceFiles;
  */
 public class ControllerImpl implements Controller {
 
-    private Configuration conf;
+    private final Configuration conf;
 
     public ControllerImpl(Configuration conf) {
         this.conf = conf;
     }
 
     @Override
-    public void seqDirectoryToText(String inputFile, String outputFile) throws IOException {
-        RawToSequence seq = new RawToSequence(conf, inputFile, outputFile, Text.class);
-        seq.run();
+    public void rawToSequenceTextKey(File inputFile, Path outputFile, String delimiter) throws IOException {
+        RawToSequence seq = new RawToSequence(conf);
+        seq.convert(inputFile, outputFile, delimiter, Text.class);
     }
 
     @Override
-    public void seqDirectoryToLong(String inputFile, String outputFile) throws IOException {
-        RawToSequence seq = new RawToSequence(conf, inputFile, outputFile, LongWritable.class);
-        seq.run();
+    public void rawToSequenceLongKey(File inputFile, Path outputFile, String delimiter) throws IOException {
+        RawToSequence seq = new RawToSequence(conf);
+        seq.convert(inputFile, outputFile, delimiter, LongWritable.class);
     }
 
     @Override
@@ -87,65 +88,74 @@ public class ControllerImpl implements Controller {
     public void vectorDump(String[] vectorDumpArgs) throws Exception {
         VectorDumper.main(vectorDumpArgs);
     }
-
 }
 
+/**
+ * Converts a file in raw format in a Sequence file format.
+ *
+ * @author Xavier Sumba <xavier.sumba93@ucuenca.ec>
+ */
 class RawToSequence {
 
     private Configuration conf;
-    private String inputFile;
-    private String outputFile;
-    private Class keyClass;
 
-    public RawToSequence(Configuration conf, String inputFile, String outputFile, Class key) {
+    public RawToSequence(Configuration conf) {
         this.conf = conf;
-        this.inputFile = inputFile;
-        this.outputFile = outputFile;
-        this.keyClass = key;
     }
 
-    public void run() throws IOException {
-        Path path = new Path(outputFile);
+    public Configuration getConf() {
+        return conf;
+    }
 
-        //opening file
-        BufferedReader br = new BufferedReader(new FileReader(inputFile));
-        //creating SequenceToLong writer
+    public void setConf(Configuration conf) {
+        this.conf = conf;
+    }
+
+    /**
+     * Convert Raw data to Sequence file format. Note: All values of the
+     * Sequence file are of type Text.
+     *
+     * @param inputFile path of the raw file, where each line is a tuple.
+     * @param outputFile path to store the sequence file.
+     * @param delimiter separator for each record in a line.
+     * @param keyClass Class for for the key of the sequence file.
+     * @throws IOException
+     */
+    public void convert(File inputFile, Path outputFile, String delimiter, Class keyClass) throws IOException {
         FileSystem fs = FileSystem.get(conf);
 
-        SequenceFile.Writer writer = null;
-        writer = new SequenceFile.Writer(fs, conf, path, keyClass, Text.class);
+        // Use try-with resources to automatically close br and writer>
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile)); // Open raw file
+                SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, outputFile, keyClass, Text.class)) {
 
-        String line;
-        String[] fields;
-        String tempvalue;
-        String delimiter = ",";
+            String line;
+            String[] fields;
+            String tempvalue;
 
-        Object key = (keyClass == Text.class) ? new Text() : new LongWritable();
-        Text value = new Text();
+            Object key = (keyClass == Text.class) ? new Text() : new LongWritable();
+            Text value = new Text();
 
-        while ((line = br.readLine()) != null) {
-            fields = line.split(delimiter);
+            while ((line = br.readLine()) != null) {
+                fields = line.split(delimiter);
 
-            if (keyClass == Text.class) {
-                ((Text) key).set(fields[0]);
-            } else if (keyClass == LongWritable.class) {
-                ((LongWritable) key).set(Long.parseLong(fields[0]));
-            }
-
-            tempvalue = "";
-            for (int i = 1; i < fields.length; i++) {
-                if (i == fields.length - 1) {
-                    tempvalue += fields[i];
-                } else {
-                    tempvalue += fields[i] + delimiter;
+                if (keyClass == Text.class) {
+                    ((Text) key).set(fields[0]);
+                } else if (keyClass == LongWritable.class) {
+                    ((LongWritable) key).set(Long.parseLong(fields[0]));
                 }
+
+                tempvalue = "";
+                for (int i = 1; i < fields.length; i++) {
+                    if (i == fields.length - 1) {
+                        tempvalue += fields[i];
+                    } else {
+                        tempvalue += fields[i] + delimiter;
+                    }
+                }
+                value.set(tempvalue);
+
+                writer.append(key, value);
             }
-            value.set(tempvalue);
-
-            writer.append(key, value);
         }
-        writer.close();
-        br.close();
     }
-
 }
