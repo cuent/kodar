@@ -13,7 +13,6 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.jena.rdf.model.Model;
@@ -60,7 +59,7 @@ public class ExportFileClusterig {
             file.createNewFile();
         }
 
-        bw.write("IdCluster,author,kw,title,uriAuthor,uriPublication" + newline);
+        bw.write("clusterId,label,author,kw,title,uriAuthor,uriPublication" + newline);
         while (reader.next(k, v)) {
             String[] values = v.toString().split(delimiter);
             for (String value : values) {
@@ -70,13 +69,14 @@ public class ExportFileClusterig {
                 String uriA = value.substring(value.indexOf(kw4) + kw4.length(), value.indexOf(kw5));
                 String uriP = value.substring(value.indexOf(kw5) + kw5.length(), value.indexOf(kw6));
                 String title = value.substring(value.indexOf(kw6) + kw6.length());
-                bw.write(k.toString() + "," + author + "," + kw + "," + title + "," + uriA + "," + uriP);
+                bw.write(cluster + "," + k.toString() + "," + author + "," + kw + "," + title + "," + uriA + "," + uriP);
                 bw.write(newline);
             }
 
+            
         }
 
-        System.out.println("File written in in " + pathToWrite);
+        System.out.println("File written in " + pathToWrite);
         bw.close();
     }
 
