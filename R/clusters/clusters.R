@@ -1,6 +1,6 @@
 library(ggbiplot)
 
-pathClusters <- "/Users/cuent/NetbeansProjects/KODAR/Job/mahout-base/kmeans/clusters.csv"
+pathClusters <- "/Users/cuent/NetbeansProjects/KODAR/Job/target/kodar_home/kmeans/clusters.csv"
 clusters <- read.csv(pathClusters, 
                      header = FALSE, sep = ",")
 clusters.labels <- clusters[,1]

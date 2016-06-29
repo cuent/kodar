@@ -1,6 +1,6 @@
 library(ggbiplot)
 
-pathWeights <- "/Users/cuent/NetbeansProjects/KODAR/Job/mahout-base/sparse/tfidf.csv"
+pathWeights <- "/Users/cuent/NetbeansProjects/KODAR/Job/target/kodar_home/sparse/tfidf.csv"
 weights <- read.csv(pathWeights, header = 
                       FALSE, sep = ",")
 weights.pca <- prcomp(weights, center = TRUE, scale. = TRUE)

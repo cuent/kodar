@@ -11,3 +11,7 @@
 /Job/mahout-base/sparse/
 /Job/mahout-base/final.json
 /Job/mahout-base/topmodel/
+/Job/kodar_home/*
+.DS_Store
+/Job/target/*
+/WebService/target/*
