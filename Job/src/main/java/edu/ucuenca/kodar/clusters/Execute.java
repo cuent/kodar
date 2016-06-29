@@ -22,14 +22,15 @@ package edu.ucuenca.kodar.clusters;
  * @author cuent
  */
 public class Execute {
-
+    
     public static void main(String[] args) throws Exception {
         if (args.length == 2) {
-            Clustering c = new Clustering(args[0], Boolean.valueOf(args[1]));
+            Clustering c = new Clustering(args[0]);
+            c.setTranslate(Boolean.parseBoolean(args[1]));
             c.run();
         } else {
             throw new Exception("ERROR: Invalid number of arguments");
         }
     }
-
+    
 }

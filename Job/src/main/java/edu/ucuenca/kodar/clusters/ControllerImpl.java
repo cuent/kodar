@@ -28,6 +28,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.mahout.clustering.fuzzykmeans.FuzzyKMeansDriver;
 import org.apache.mahout.clustering.kmeans.KMeansDriver;
 import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
 import org.apache.mahout.utils.clustering.ClusterDumper;
@@ -67,6 +68,11 @@ public class ControllerImpl implements Controller {
     @Override
     public void kmeans(String[] kmeansArgs) throws Exception {
         ToolRunner.run(conf, new KMeansDriver(), kmeansArgs);
+    }
+
+    @Override
+    public void fuzzyKmeans(String[] fuzzykmeansArgs) throws Exception {
+        ToolRunner.run(conf, new FuzzyKMeansDriver(), fuzzykmeansArgs);
     }
 
     @Override
@@ -124,7 +130,7 @@ class RawToSequence {
     public void convert(File inputFile, Path outputFile, String delimiter, Class keyClass) throws IOException {
         FileSystem fs = FileSystem.get(conf);
 
-        // Use try-with resources to automatically close br and writer>
+        // Use try-with resources to automatically close br and writer.
         try (BufferedReader br = new BufferedReader(new FileReader(inputFile)); // Open raw file
                 SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, outputFile, keyClass, Text.class)) {
 
@@ -157,5 +163,6 @@ class RawToSequence {
                 writer.append(key, value);
             }
         }
+
     }
 }

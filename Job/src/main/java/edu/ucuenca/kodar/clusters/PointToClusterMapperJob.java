@@ -17,17 +17,16 @@
  */
 package edu.ucuenca.kodar.clusters;
 
+import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-
-import java.io.IOException;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.mahout.clustering.classify.WeightedVectorWritable;
 import org.apache.mahout.math.NamedVector;
 
@@ -66,10 +65,13 @@ public class PointToClusterMapperJob extends Configured {
 /**
  * Maps the name of a point to the id of the cluster, sorted by point name in
  * ascending order.
+ *
+ * The clusteredPoints directory contains the final mapping from cluster ID to
+ * document ID.
  */
 class PointToClusterMapper extends Mapper<IntWritable, WeightedVectorWritable, LongWritable, IntWritable> {
 
-    private LongWritable pointName = new LongWritable();
+    private LongWritable documentId = new LongWritable();
 
     @Override
     protected void map(IntWritable clusterId, WeightedVectorWritable point, Mapper.Context context) throws IOException, InterruptedException {
@@ -80,8 +82,8 @@ class PointToClusterMapper extends Mapper<IntWritable, WeightedVectorWritable, L
             throw new RuntimeException("Cannot output point name, point is not a NamedVector");
         }
 
-        pointName.set(Long.valueOf(namedVector.getName()));
+        documentId.set(Long.valueOf(namedVector.getName()));
 
-        context.write(pointName, clusterId);
+        context.write(documentId, clusterId);
     }
 }

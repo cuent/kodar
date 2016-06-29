@@ -55,6 +55,18 @@ public interface Controller {
      */
     public void kmeans(String[] kmeansArgs) throws Exception;
 
+    /**
+     * Fuzzy K-means clustering algorithm.
+     *
+     * @see
+     * <a href="https://mahout.apache.org/users/clustering/fuzzy-k-means.html">Fuzzy
+     * K-Means Clustering</a> to know more about the parameters.
+     *
+     * @param fuzzykmeansArgs vector of parameters
+     * @throws Exception
+     */
+    public void fuzzyKmeans(String[] fuzzykmeansArgs) throws Exception;
+
     public void clusterDumper(String[] clusterDumperArgs) throws Exception;
 
     public void collapsedVariationalBayes(String[] args) throws Exception;

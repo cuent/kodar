@@ -7,12 +7,14 @@ package edu.ucuenca.kodar.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.util.Iterator;
 import org.apache.hadoop.conf.Configuration;
@@ -29,31 +31,29 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.mahout.clustering.classify.WeightedPropertyVectorWritable;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 
 /**
  *
  * @author cuent
  */
-public class KODAWriter {
+public class Writer {
 
-    private static KODAWriter instanceWriter = new KODAWriter();
+    private static Writer instanceWriter = new Writer();
     private final String URL_TRANSLATE_ES_EN = "http://190.15.141.85:8080/marmottatest/pubman/translate?";
 
-    private KODAWriter() {
+    private Writer() {
     }
 
-    public static KODAWriter getWriteSequenceFile() {
+    public static Writer getWriteSequenceFile() {
         return instanceWriter;
     }
 
-    public void writeClusterVector(String pathVectorFile, String pathToSave) throws IOException {
+    public void writeClusterVector(Path pathVectorFile, Path pathToSave) throws IOException {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
-        SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(pathVectorFile), conf);
+        SequenceFile.Reader reader = new SequenceFile.Reader(fs, pathVectorFile, conf);
 
-        File file = new File(pathToSave + "clusters.csv");
+        File file = new File(pathToSave.toString(), "clusters.csv");
         FileWriter fr = new FileWriter(file);
         BufferedWriter bw = new BufferedWriter(fr);
 
@@ -66,10 +66,11 @@ public class KODAWriter {
             while (it.hasNext()) {
                 Vector.Element element = (Vector.Element) it.next();
                 valueElement = element.get();
-                if (valueElement != 0.0) {
-                    bw.write((valueElement * 100) + ",");
+
+                if (it.hasNext()) {
+                    bw.write(valueElement + ",");
                 } else {
-                    bw.write(new Double(1.0) + ",");
+                    bw.write(valueElement + "");
                 }
             }
             bw.write("\n");
@@ -79,13 +80,17 @@ public class KODAWriter {
         bw.close();
     }
 
-    public void disjoin(String pathOriginalFile, boolean translate) throws FileNotFoundException, IOException {
-        FileReader filereader = new FileReader(new File(pathOriginalFile));
+    public void disjoin(File inputFile, File outputPath, boolean translate) throws FileNotFoundException, IOException {
+        FileReader filereader = new FileReader(inputFile);
         BufferedReader br = new BufferedReader(filereader);
         HttpClient httpClient = HttpClients.createDefault();
 
-        BufferedWriter outAuthors = new BufferedWriter(new FileWriter(new File("mahout-base/original/authors.csv")));
-        BufferedWriter outKeywords = new BufferedWriter(new FileWriter(new File("mahout-base/original/keywords.csv")));
+        if (!outputPath.exists()) {
+            outputPath.mkdir();
+        }
+
+        BufferedWriter outAuthors = new BufferedWriter(new FileWriter(new File(outputPath, "authors.csv")));
+        BufferedWriter outKeywords = new BufferedWriter(new FileWriter(new File(outputPath, "keywords.csv")));
 
         String line = br.readLine();
         String newline = System.getProperty("line.separator");
@@ -122,7 +127,6 @@ public class KODAWriter {
                                 outKeywords.write(kwTranslated);
                             } catch (Exception e) {
                                 outKeywords.write(keywords);
-                                System.out.println(e);
                             } finally {
                                 reader.close();
                             }
@@ -149,12 +153,12 @@ public class KODAWriter {
         outKeywords.close();
     }
 
-    public void writeVector(String pathVectorFile, String pathToSave) throws IOException {
+    public void writeVector(Path pathVectorFile, Path pathToSave) throws IOException {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
-        SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(pathVectorFile), conf);
+        SequenceFile.Reader reader = new SequenceFile.Reader(fs, pathVectorFile, conf);
 
-        File file = new File(pathToSave + "tfidf.csv");
+        File file = new File(pathToSave.toString(), "tfidf.csv");
         FileWriter fr = new FileWriter(file);
         BufferedWriter bw = new BufferedWriter(fr);
 
@@ -166,10 +170,10 @@ public class KODAWriter {
             while (it.hasNext()) {
                 Vector.Element element = (Vector.Element) it.next();
                 valueElement = element.get();
-                if (valueElement != 0.0) {
-                    bw.write((valueElement * 100) + ",");
+                if (it.hasNext()) {
+                    bw.write(valueElement + ",");
                 } else {
-                    bw.write(new Double(1.0) + ",");
+                    bw.write(valueElement + "");
                 }
             }
             bw.write("\n");

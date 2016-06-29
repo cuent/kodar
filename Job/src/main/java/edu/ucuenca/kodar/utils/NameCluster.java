@@ -10,6 +10,7 @@ import edu.ucuenca.kodar.utils.nlp.Category;
 import java.io.IOException;
 import net.didion.jwnl.JWNLException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -25,50 +26,59 @@ public class NameCluster {
 
     private Configuration conf;
     private static final String delimiter = "2db5c8", escapeContent = " Content: ", escapeAuthor = " Author:",
-            escapeTitle = " Title: ", espapeURIA = " URI_A: ";
+            escapeTitle = " Title: ";
 
-    public void execute(String pathFileInput) throws IOException, JWNLException, Exception {
-        Path path = new Path(pathFileInput);
+    public void execute(Path path) throws IOException, JWNLException, Exception {
+        //Path path = new Path(pathFileInput);
 
         FileSystem fs = FileSystem.get(conf);
-        Path temp = new Path("mahout-base/topmodel/temp/", "part000");
-        Path namedClusters = new Path("mahout-base/", "named-clusters");
+        Path temp = new Path("target/kodar_home/topmodel/temp/", "part000");
+        Path namedClusters = new Path("target/kodar_home/", "named-clusters");
         HadoopUtil.delete(conf, namedClusters);
 
-        SequenceFile.Reader reader = new SequenceFile.Reader(fs, path, conf);
-        LongWritable k = new LongWritable();
-        Text v = new Text();
-        String document = "", kws, title;
+        FileStatus[] items = fs.listStatus(path);
 
-        SequenceFile.Writer writeCluster = new SequenceFile.Writer(fs, conf, namedClusters, Text.class, Text.class);
-
-        System.out.println("Reading: " + pathFileInput);
-        while (reader.next(k, v)) {
-            //for (int i = 0; i < 2; i++) {
-
-            reader.next(k, v);
-            String[] values = v.toString().split(delimiter);
-            int id = 0;
-
-            SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, temp, Text.class, Text.class);
-            for (String value : values) {
-                kws = value.substring(value.indexOf(escapeContent) + escapeContent.length(),
-                        value.indexOf(escapeAuthor));
-                title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
-                Category c = new Category(kws);
-                c.populate();
-                document = title + "\n" + kws + "\n" + c.toString();
-                id++;
-                writer.append(new Text(String.valueOf(id)), new Text(document));
+        for (FileStatus item : items) {
+            // Ignore files like _SUCESS
+            if (item.getPath().getName().startsWith("_")) {
+                continue;
             }
-            writer.close();
-            Tagger tagger = new Tagger();
-            String label = tagger.tag(temp.toString());
-            writeCluster.append(new Text(label), v);
-            HadoopUtil.delete(conf, temp);
-            //}
+
+            SequenceFile.Reader reader = new SequenceFile.Reader(fs, item.getPath(), conf);
+            LongWritable k = new LongWritable();
+            Text v = new Text();
+            String document = "", kws, title;
+
+            SequenceFile.Writer writeCluster = new SequenceFile.Writer(fs, conf, namedClusters, Text.class, Text.class);
+
+            System.out.println("Reading: " + path);
+            while (reader.next(k, v)) {
+                //for (int i = 0; i < 2; i++) {
+
+                //reader.next(k, v);
+                String[] values = v.toString().split(delimiter);
+                int id = 0;
+
+                SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, temp, Text.class, Text.class);
+                for (String value : values) {
+                    kws = value.substring(value.indexOf(escapeContent) + escapeContent.length(),
+                            value.indexOf(escapeAuthor));
+                    title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
+                    Category c = new Category(kws);
+                    c.populate();
+                    document = title + "\n" + kws + "\n" + c.toString();
+                    id++;
+                    writer.append(new Text(String.valueOf(id)), new Text(document));
+                }
+                writer.close();
+                Tagger tagger = new Tagger();
+                String label = tagger.tag(temp.toString());
+                writeCluster.append(new Text(label), v);
+                HadoopUtil.delete(conf, temp);
+                //}
+            }
+            writeCluster.close();
         }
-        writeCluster.close();
     }
 
     public Configuration getConf() {
