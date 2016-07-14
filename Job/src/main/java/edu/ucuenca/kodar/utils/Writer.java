@@ -7,6 +7,7 @@ package edu.ucuenca.kodar.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import edu.ucuenca.kodar.clusters.Clustering;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.util.Iterator;
+import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -29,6 +31,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.mahout.clustering.classify.WeightedPropertyVectorWritable;
+import org.apache.mahout.math.NamedVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
@@ -153,7 +156,7 @@ public class Writer {
         outKeywords.close();
     }
 
-    public void writeVector(Path pathVectorFile, Path pathToSave) throws IOException {
+    public void writeVector(Path pathVectorFile, Path pathToSave) throws IOException, Exception {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
         SequenceFile.Reader reader = new SequenceFile.Reader(fs, pathVectorFile, conf);
@@ -162,14 +165,35 @@ public class Writer {
         FileWriter fr = new FileWriter(file);
         BufferedWriter bw = new BufferedWriter(fr);
 
+        List<Tuple<Text, IntWritable>> dictionary = Printer.getReadSequenceFile().readSequenceFile(
+                new Path(Clustering.SPARSE_VECTORS.toString(), "dictionary.file-0"), Text.class,
+                IntWritable.class);
+        StringBuilder header = new StringBuilder()
+                .append("iddoc,");
+        Iterator<Tuple<Text, IntWritable>> itDctnry = dictionary.iterator();
+        while (itDctnry.hasNext()) {
+            if (itDctnry.hasNext()) {
+                header.append(itDctnry.next().getA()).append(",");
+            } else {
+                header.append(itDctnry.next().getA());
+            }
+        }
+        bw.write(header.toString());
+        bw.write("\n");
+
         Text key = new Text();
         VectorWritable value = new VectorWritable();
         double valueElement = 0;
+        int docid = 0;
         while (reader.next(key, value)) {
             Iterator it = value.get().all().iterator();
+            String name = ((NamedVector) value.get()).getName();
+            bw.write("doc" + docid++ + "_" + name + ",");
+
             while (it.hasNext()) {
                 Vector.Element element = (Vector.Element) it.next();
                 valueElement = element.get();
+
                 if (it.hasNext()) {
                     bw.write(valueElement + ",");
                 } else {
