@@ -172,10 +172,11 @@ public class Writer {
                 .append("iddoc,");
         Iterator<Tuple<Text, IntWritable>> itDctnry = dictionary.iterator();
         while (itDctnry.hasNext()) {
+            Text word = itDctnry.next().getA();
             if (itDctnry.hasNext()) {
-                header.append(itDctnry.next().getA()).append(",");
+                header.append(word).append(",");
             } else {
-                header.append(itDctnry.next().getA());
+                header.append(word);
             }
         }
         bw.write(header.toString());
