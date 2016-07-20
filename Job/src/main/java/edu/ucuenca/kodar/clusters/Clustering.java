@@ -50,19 +50,34 @@ public class Clustering {
     private final ExportFileClusterig export = ExportFileClusterig.getExportFile();
     private Configuration conf = null;
 
-    private File KODAR_HOME;
-    private final File RAW_DATA;
-    private final File SEQUENCE_DATA;
-    private final File SPARSE_VECTORS;
-    private final File KMEANS;
-    private final File SEED;
-    private final File EVALUATION;
-    private final File RESULT;
-    private final File MR_JOBS;
-    private final Path POINTS_TO_CLUSTERS;
-    private final Path CLUSTER_KEYWORDS;
-    private final Path RESULT_OUTPUT;
-    private final Path SORT;
+    public static final File KODAR_HOME = setKodarVariable();
+    public static final File RAW_DATA = new File(KODAR_HOME, "raw");
+    public static final File SEQUENCE_DATA = new File(KODAR_HOME, "sequence");
+    public static final File SPARSE_VECTORS = new File(KODAR_HOME, "sparse");
+    public static final File KMEANS = new File(KODAR_HOME, "kmeans");
+    public static final File SEED = new File(KMEANS, "seed");
+    public static final File EVALUATION = new File(KODAR_HOME, "evaluation");
+    public static final File RESULT = new File(KODAR_HOME, "result");
+    public static final File MR_JOBS = new File(KODAR_HOME, "mr_jobs");
+    public static final Path POINTS_TO_CLUSTERS = new Path(MR_JOBS.getPath(), "points_to_clusters");
+    public static final Path CLUSTER_KEYWORDS = new Path(MR_JOBS.getPath(), "clusteredKeywords");
+    public static final Path RESULT_OUTPUT = new Path(MR_JOBS.getPath(), "clusteredData");
+    public static final Path SORT = new Path(MR_JOBS.getPath(), "sort");
+
+    private static File setKodarVariable() {
+        String env = System.getenv("KODAR_HOME");
+        File dir;
+        if (env == null) {
+            env = System.getProperty("user.dir") + "/target/kodar_home";
+        }
+
+        dir = new File(env);
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+
+        return dir;
+    }
 
     /**
      * The file to process should have the following headers.
@@ -77,28 +92,6 @@ public class Clustering {
     public Clustering(String datasetPath) {
         this.datasetPath = datasetPath;
 
-        String env = System.getenv("KODAR_HOME");
-        if (env == null) {
-            env = System.getProperty("user.dir") + "/target/kodar_home";
-            KODAR_HOME = new File(env);
-            if (!KODAR_HOME.exists()) {
-                KODAR_HOME.mkdir();
-            }
-        }
-
-        RAW_DATA = new File(KODAR_HOME, "raw");
-        SEQUENCE_DATA = new File(KODAR_HOME, "sequence");
-        SPARSE_VECTORS = new File(KODAR_HOME, "sparse");
-        KMEANS = new File(KODAR_HOME, "kmeans");
-        SEED = new File(KMEANS, "seed");
-        EVALUATION = new File(KODAR_HOME, "evaluation");
-        RESULT = new File(KODAR_HOME, "result");
-        MR_JOBS = new File(KODAR_HOME, "mr_jobs");
-        POINTS_TO_CLUSTERS = new Path(MR_JOBS.getPath(), "points_to_clusters");
-        CLUSTER_KEYWORDS = new Path(MR_JOBS.getPath(), "clusteredKeywords");
-        RESULT_OUTPUT = new Path(MR_JOBS.getPath(), "clusteredData");
-        SORT = new Path(MR_JOBS.getPath(), "sort");
-
         if (!RESULT.exists()) {
             RESULT.mkdir();
         }
@@ -110,10 +103,10 @@ public class Clustering {
         controller = new ControllerImpl(conf);
     }
 
-    public void run() throws IOException, Exception {
+    public void run(int k) throws IOException, Exception {
         preprocessData();
         generateSparseVectors();
-        executeKmeans();
+        executeKmeans(k);
         executeFuzzyKmeans();
 
         writer.writeClusterVector(new Path(KMEANS.getPath(), "clusteredPoints/part-m-0"),
@@ -165,7 +158,7 @@ public class Clustering {
         writer.writeVector(new Path(SPARSE_VECTORS.getPath(), "tfidf-vectors/part-r-00000"), new Path(SPARSE_VECTORS.getPath()));
     }
 
-    private void executeKmeans() throws Exception {
+    private void executeKmeans(int k) throws Exception {
         // Run KMeans
         String[] kmeans = new String[]{
             "-i", new File(SPARSE_VECTORS, "tfidf-vectors").getPath(),
@@ -173,7 +166,7 @@ public class Clustering {
             "-c", SEED.getPath(),
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
-            "-k", "5",
+            "-k", String.valueOf(k),
             "-cl",
             "-xm", "sequential",
             "-ow"
@@ -239,7 +232,15 @@ public class Clustering {
                 numIterations, false);
         //RepresentativePointsDriver.printRepresentativePoints(new Path(EVALUATION.getPath()), numIterations);
         // var clustersIn
-        ClusterEvaluator evaluator = new ClusterEvaluator(conf, new Path(KMEANS.getPath(), "clusters-1-final"));
+        File folder = new File(KMEANS.getPath());
+        String clustersInStr = "";
+        for (String file : folder.list()) {
+            if (file.contains("final")) {
+                clustersInStr = file;
+                break;
+            }
+        }
+        ClusterEvaluator evaluator = new ClusterEvaluator(conf, new Path(KMEANS.getPath(), clustersInStr));
         interClusterDensity = evaluator.interClusterDensity();
 //        System.out.println(evaluator.interClusterDensity());
 //        System.out.println(evaluator.intraClusterDensity());
