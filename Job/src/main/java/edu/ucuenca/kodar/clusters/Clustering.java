@@ -18,19 +18,28 @@
 package edu.ucuenca.kodar.clusters;
 
 import edu.uc.mahout.base.topicmodel.SortMapperJob;
+import edu.uc.mahout.base.topicmodel.Tagger;
 import edu.ucuenca.kodar.utils.ExportFileClusterig;
-import edu.ucuenca.kodar.utils.NameCluster;
 import edu.ucuenca.kodar.utils.Writer;
+import edu.ucuenca.kodar.utils.nlp.Category;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.Map;
+import net.didion.jwnl.JWNLException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 import org.apache.mahout.clustering.evaluation.ClusterEvaluator;
 import org.apache.mahout.clustering.evaluation.RepresentativePointsDriver;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.distance.CosineDistanceMeasure;
 import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.math.Vector;
 
 /**
  * Discover potential networks of collaboration and similar knowledge areas.
@@ -55,14 +64,12 @@ public class Clustering {
     public static final File SEQUENCE_DATA = new File(KODAR_HOME, "sequence");
     public static final File SPARSE_VECTORS = new File(KODAR_HOME, "sparse");
     public static final File KMEANS = new File(KODAR_HOME, "kmeans");
-    public static final File SEED = new File(KMEANS, "seed");
+    public static final File FKMEANS = new File(KODAR_HOME, "fkmeans");
     public static final File EVALUATION = new File(KODAR_HOME, "evaluation");
     public static final File RESULT = new File(KODAR_HOME, "result");
     public static final File MR_JOBS = new File(KODAR_HOME, "mr_jobs");
-    public static final Path POINTS_TO_CLUSTERS = new Path(MR_JOBS.getPath(), "points_to_clusters");
-    public static final Path CLUSTER_KEYWORDS = new Path(MR_JOBS.getPath(), "clusteredKeywords");
-    public static final Path RESULT_OUTPUT = new Path(MR_JOBS.getPath(), "clusteredData");
-    public static final Path SORT = new Path(MR_JOBS.getPath(), "sort");
+    public static final File TOPMODEL = new File(KODAR_HOME, "topmodel");
+    public static final File NAMED_CLUSTERS = new File(KODAR_HOME, "named_clusters");
 
     private static File setKodarVariable() {
         String env = System.getenv("KODAR_HOME");
@@ -116,16 +123,13 @@ public class Clustering {
 //                new Path("kodar_home/kmeans/clusteredPoints"));
 //        clusterDumper.printClusters(null);
         //Path outputFinalClustersPath = new Path(KMEANS.getPath(), "clusters-*-final/*");
-        joinCLusterResults();
+        joinCLusterResults(KMEANS);
+        joinCLusterResults(FKMEANS);
+
+        labelCLusters();
 
         // Label clusters
-        NameCluster namedCluster = new NameCluster();
-        namedCluster.setConf(conf);
-        namedCluster.execute(SORT);
-
-        export.writeResultFileCSV(KODAR_HOME + "/named-clusters", RESULT + "/final.csv");
-        export.writeResultFileJSON(KODAR_HOME + "/named-clusters", RESULT + "/final.json");
-        export.writeResultFileRDF(KODAR_HOME + "/named-clusters", RESULT + "/final.nt");
+        exportFiles();
 
         if (evaluate) {
             evaluateCluster(conf);
@@ -163,7 +167,7 @@ public class Clustering {
         String[] kmeans = new String[]{
             "-i", new File(SPARSE_VECTORS, "tfidf-vectors").getPath(),
             "-o", KMEANS.getPath(),
-            "-c", SEED.getPath(),
+            "-c", new File(KMEANS, "seed").getPath(),
             "-dm", CosineDistanceMeasure.class.getName(),
             "-x", "100",
             "-k", String.valueOf(k),
@@ -174,51 +178,134 @@ public class Clustering {
         controller.kmeans(kmeans);
     }
 
-    private void executeFuzzyKmeans() {
+    private void executeFuzzyKmeans() throws Exception {
 
         String[] fuzzykmeans = new String[]{
-            "-i", "<input vectors directory>",
-            "-c", "<input clusters directory>",
-            "-o", "<output working directory>",
-            "-dm", "<DistanceMeasure>",
-            "-m", "<fuzziness argument >1>",
-            "-x", "<maximum number of iterations>",
-            "-k", "<optional number of initial clusters to sample from input vectors>",
-            "-cd", "<optional convergence delta. Default is 0.5>",
-            "-ow", "<overwrite output directory if present>",
-            "-cl", "<run input vector clustering after computing Clusters>",
-            "-e", "<emit vectors to most likely cluster during clustering>",
-            "-t", "<threshold to use for clustering if -e is false>",
-            "-xm", "<execution method: sequential or mapreduce>"
+            "-i", new File(SPARSE_VECTORS, "tfidf-vectors").getPath(),
+            "-c", new File(KMEANS, "clusters-1-final").getPath(),
+            "-o", FKMEANS.getPath(),
+            "-dm", CosineDistanceMeasure.class.getName(),
+            "-m", "1.8",
+            "-x", "100",
+            //"-k", "<optional number of initial clusters to sample from input vectors>",
+            "-cd", "0.5",
+            "-ow",
+            "-cl",
+            "-e",
+            //"-t", "<threshold to use for clustering if -e is false>",
+            "-xm", "sequential"
         };
+        controller.fuzzyKmeans(fuzzykmeans);
     }
 
-    private void joinCLusterResults() throws IOException, ClassNotFoundException, InterruptedException, Exception {
-        // Delete File 
-        HadoopUtil.delete(conf, new Path(MR_JOBS.getPath()));
+    private void joinCLusterResults(File cluster) throws IOException, ClassNotFoundException, InterruptedException, Exception {
+        // Define directories paths.
+        Path BASE_DIR = new Path(MR_JOBS.getPath(), cluster.getName());
+        Path POINTS_TO_CLUSTERS = new Path(BASE_DIR, "points_to_clusters");
+        Path CLUSTER_KEYWORDS = new Path(BASE_DIR, "clusteredKeywords");
+        Path RESULT_OUTPUT = new Path(BASE_DIR, "clusteredData");
+        Path SORT = new Path(BASE_DIR, "sort");
 
-        // Join point name with cluster id
-        PointToClusterMapperJob pointsToClusterMappingJob = new PointToClusterMapperJob(new Path(KMEANS.getPath(), "clusteredPoints"),
+        // Delete everything in MR_JOBS.
+        HadoopUtil.delete(conf, BASE_DIR);
+
+        // Join point name with cluster id.
+        PointToClusterMapperJob pointsToClusterMappingJob = new PointToClusterMapperJob(new Path(cluster.getPath(), "clusteredPoints"),
                 POINTS_TO_CLUSTERS);
         pointsToClusterMappingJob.setConf(conf);
         pointsToClusterMappingJob.mapPointsToClusters();
 
-        // Join keywords with pointsToClusters
+        // Join keywords with pointsToClusters.
         ClusterJoinerMapperJob clusterJoinerJob = new ClusterJoinerMapperJob(new Path(SEQUENCE_DATA.getPath(), "outputLong"),
                 POINTS_TO_CLUSTERS, CLUSTER_KEYWORDS);
         clusterJoinerJob.setConf(conf);
         clusterJoinerJob.run();
 
-        // Join clusteredKeywords with authors
+        // Join clusteredKeywords with authors.
         JoinKeywordsAuthorMapperJob joinKwAuthors = new JoinKeywordsAuthorMapperJob(CLUSTER_KEYWORDS,
                 new Path(SEQUENCE_DATA.getPath(), "outputAuthors"), RESULT_OUTPUT);
         joinKwAuthors.setConf(conf);
         joinKwAuthors.run();
 
-        // Sort and group
+        // Sort and group.
         SortMapperJob sortByClusterId = new SortMapperJob(RESULT_OUTPUT, SORT);
         sortByClusterId.setConf(conf);
         sortByClusterId.run();
+    }
+
+    private void labelCLusters() throws IOException, JWNLException, Exception {
+        String delimiter = "2db5c8", escapeContent = " Content: ", escapeAuthor = " Author:",
+                escapeTitle = " Title: ";
+
+        FileSystem fs = FileSystem.get(conf);
+        Path TEMP = new Path(TOPMODEL.getPath(), "part000");
+        HadoopUtil.delete(conf, new Path(NAMED_CLUSTERS.getPath()));
+
+        FileStatus[] folders = fs.listStatus(new Path(MR_JOBS.getPath()));
+
+        for (FileStatus folder : folders) {
+            FileStatus[] files = fs.listStatus(new Path(MR_JOBS.getPath() + "/" + folder.getPath().getName(), "sort"));
+            for (FileStatus file : files) {
+                // Ignore files like _SUCESS
+                if (file.getPath().getName().startsWith("_")) {
+                    continue;
+                }
+
+                SequenceFile.Reader reader = new SequenceFile.Reader(fs, file.getPath(), conf);
+                LongWritable k = new LongWritable();
+                Text v = new Text();
+                String document = "", kws, title;
+
+                Path fileNamedClusters = new Path(NAMED_CLUSTERS.getPath(), folder.getPath().getName());
+                SequenceFile.Writer writeCluster = new SequenceFile.Writer(fs, conf, fileNamedClusters, Text.class, Text.class);
+
+                System.out.println("Reading: " + file.getPath());
+                while (reader.next(k, v)) {
+                //for (int i = 0; i < 2; i++) {
+
+                    //reader.next(k, v);
+                    String[] values = v.toString().split(delimiter);
+                    int id = 0;
+
+                    SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, TEMP, Text.class, Text.class);
+                    for (String value : values) {
+                        kws = value.substring(value.indexOf(escapeContent) + escapeContent.length(),
+                                value.indexOf(escapeAuthor));
+                        title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
+                        Category c = new Category(kws);
+                        c.populate();
+                        document = title + "\n" + kws + "\n" + c.toString();
+                        id++;
+                        writer.append(new Text(String.valueOf(id)), new Text(document));
+                    }
+                    writer.close();
+                    Tagger tagger = new Tagger();
+                    String label = tagger.tag(TEMP.toString());
+                    writeCluster.append(new Text(label), v);
+                    HadoopUtil.delete(conf, TEMP);
+                    //}
+                }
+                writeCluster.close();
+            }
+        }
+    }
+
+    private void exportFiles() throws IOException {
+        FileSystem fs = FileSystem.get(conf);
+        FileStatus[] files = fs.listStatus(new Path(NAMED_CLUSTERS.getPath()));
+
+        for (FileStatus file : files) {
+
+            String pathToExport = RESULT + "/" + file.getPath().getName();
+
+            File directory = new File(pathToExport);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            export.writeResultFileCSV(file.getPath().toString(), pathToExport + "/final.csv");
+            export.writeResultFileJSON(file.getPath().toString(), pathToExport + "/final.json");
+            export.writeResultFileRDF(file.getPath().toString(), pathToExport + "/final.nt");
+        }
     }
 
     private void evaluateCluster(Configuration conf) throws InterruptedException, IOException, ClassNotFoundException {
@@ -242,6 +329,13 @@ public class Clustering {
         }
         ClusterEvaluator evaluator = new ClusterEvaluator(conf, new Path(KMEANS.getPath(), clustersInStr));
         interClusterDensity = evaluator.interClusterDensity();
+
+        for (Map.Entry<Integer, Vector> entry : evaluator.interClusterDistances().entrySet()) {
+            System.out.println(entry.getKey());
+            System.out.println(entry.getValue());
+        }
+
+        System.out.println(evaluator.intraClusterDensities());
 //        System.out.println(evaluator.interClusterDensity());
 //        System.out.println(evaluator.intraClusterDensity());
 //

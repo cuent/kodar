@@ -18,19 +18,20 @@
 package edu.ucuenca.kodar.clusters;
 
 /**
- *
- * @author cuent
+ * Executes the clustering Job.
+ * 
+ * @author Xavier Sumba <xavier.sumba93@ucuenca.ec> 
  */
 public class Execute {
-    
+
     public static void main(String[] args) throws Exception {
         if (args.length == 2) {
             Clustering c = new Clustering(args[0]);
             c.setTranslate(Boolean.parseBoolean(args[1]));
-            c.run();
+            c.run(16);
         } else {
             throw new Exception("ERROR: Invalid number of arguments");
         }
     }
-    
+
 }
