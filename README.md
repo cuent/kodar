@@ -1,11 +1,11 @@
-# KODAR: Clustering application 
+# KODAR: Clustering application
 
-The aim of this application is to discover potential areas of knowledge and similar research areas based on keywords of research papers. 
+The aim of this application is to discover potential areas of knowledge and similar research areas based on keywords of research papers.
 
 # Data
  The data is extracted from an [SPARQL endpoint](http://190.15.141.85:8080/sparql/admin/squebi.html):
 
-You could execute this query to get last results: 
+You could execute this query to get last results:
 
 ```sparql
 PREFIX dct: <http://purl.org/dc/terms/>
@@ -20,8 +20,24 @@ WHERE {
 	?publication dct:title ?title.
   	?publication bibo:Quote ?keyword.
   }
-} GROUP BY ?name ?author  ?publication ?title 
+} GROUP BY ?name ?author  ?publication ?title
 ```
+
+```sparql
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT distinct ?name ?author ?publication (group_concat(distinct ?tit;separator = ",") as ?title)  (group_concat(distinct ?keyword;separator=",") as ?keywords)
+FROM <http://ucuenca.edu.ec/wkhuska>
+WHERE {
+  ?author foaf:publications ?publication.  
+  ?author foaf:name ?name.
+  ?publication bibo:Quote ?keyword.
+  ?publication dct:title ?tit.
+} GROUP BY ?author ?publication ?name
+```
+
 
 For the experiment I try with this [dataset]().
 
@@ -30,7 +46,7 @@ For the experiment I try with this [dataset]().
 # Evaluation
 
 # Contribution
- 
+
 # Try yourself
 
 **System Requirements**
@@ -38,4 +54,3 @@ For the experiment I try with this [dataset]().
 * Java JRE 1.7.0_45 or superior
 * Maven 3 or superior
 * Java Application Server (Tomcat 7.x, Jetty 6.x or GlassFish 4.x)
-

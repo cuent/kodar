@@ -20,3 +20,4 @@ g <- g + theme(legend.direction = 'horizontal',
 print(g)
 pathToSave <- "NetbeansProjects/KODAR/R/clusters/clusters.png"
 ggsave(pathToSave)
+                              

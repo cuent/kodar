@@ -29,8 +29,6 @@ public class NameCluster {
             escapeTitle = " Title: ";
 
     public void execute(Path path) throws IOException, JWNLException, Exception {
-        //Path path = new Path(pathFileInput);
-
         FileSystem fs = FileSystem.get(conf);
         Path temp = new Path("target/kodar_home/topmodel/temp/", "part000");
         Path namedClusters = new Path("target/kodar_home/", "named-clusters");

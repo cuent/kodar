@@ -27,21 +27,32 @@ import java.util.List;
  */
 public class Evaluate {
 
-    public Evaluate() throws Exception {
+    public void elbowMethod() throws Exception {
         List<Double> interclusterdensities = new LinkedList<>();
-        for (int i = 0; i < 3; i++) {
-            Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/dataset.csv");
+        for (int i = 2; i <= 102; i += 5) {
+            Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/evaluation.csv");
             c.setEvaluation(true);
-            c.run();
+            c.run(i);
             interclusterdensities.add(c.getInterClusterDensity());
         }
 
+        int k = 2;
         for (Double interclusterdensity : interclusterdensities) {
-            System.out.println(interclusterdensity);
+            System.out.println(k + "," + interclusterdensity);
+            k += 5;
         }
+    }
+
+    public void interclusterDistance() throws Exception {
+        List<Double> interclusterdensities = new LinkedList<>();
+        Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/evaluation.csv");
+        c.setEvaluation(true);
+        c.run(16);
     }
 
     public static void main(String[] args) throws Exception {
         Evaluate e = new Evaluate();
+        //e.elbowMethod();
+        e.interclusterDistance();
     }
 }
