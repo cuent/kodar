@@ -20,6 +20,7 @@ package edu.ucuenca.kodar.clusters.evaluation;
 import edu.ucuenca.kodar.clusters.Clustering;
 import java.util.LinkedList;
 import java.util.List;
+import org.apache.log4j.PropertyConfigurator;
 
 /**
  *
@@ -27,32 +28,37 @@ import java.util.List;
  */
 public class Evaluate {
 
-    public void elbowMethod() throws Exception {
-        List<Double> interclusterdensities = new LinkedList<>();
-        for (int i = 2; i <= 102; i += 5) {
-            Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/evaluation.csv");
+    public void elbowMethod(int start, int end, int inc) throws Exception {
+        List<Double> interclusterdensitiesKMeans = new LinkedList<>();
+        List<Double> interclusterdensitiesFkMeans = new LinkedList<>();
+        for (int i = start; i <= end; i += inc) {
+            Clustering c = new Clustering("/home/cuent/Downloads/tuple.csv");
+            //Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/evaluation.csv");
             c.setEvaluation(true);
             c.run(i);
-            interclusterdensities.add(c.getInterClusterDensity());
+            interclusterdensitiesKMeans.add(c.getInterClusterDensityKmeans());
+            interclusterdensitiesFkMeans.add(c.getInterClusterDensityFuzzyKmeans());
         }
 
-        int k = 2;
-        for (Double interclusterdensity : interclusterdensities) {
+        int k = start;
+        System.out.println("### Inter-cluster densities K-Means ###");
+        for (Double interclusterdensity : interclusterdensitiesKMeans) {
             System.out.println(k + "," + interclusterdensity);
-            k += 5;
+            k += inc;
         }
-    }
 
-    public void interclusterDistance() throws Exception {
-        List<Double> interclusterdensities = new LinkedList<>();
-        Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/evaluation.csv");
-        c.setEvaluation(true);
-        c.run(16);
+        k = start;
+        System.out.println("### Inter-cluster densities Fuzzy K Means ###");
+        for (Double interclusterdensity : interclusterdensitiesFkMeans) {
+            System.out.println(k + "," + interclusterdensity);
+            k += inc;
+        }
     }
 
     public static void main(String[] args) throws Exception {
+        PropertyConfigurator.configure("log4j.properties");
+
         Evaluate e = new Evaluate();
-        //e.elbowMethod();
-        e.interclusterDistance();
+        e.elbowMethod(50, 600, 50);
     }
 }

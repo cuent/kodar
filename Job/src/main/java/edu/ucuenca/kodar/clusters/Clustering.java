@@ -23,9 +23,9 @@ import edu.ucuenca.kodar.utils.ExportFileClusterig;
 import edu.ucuenca.kodar.utils.Writer;
 import edu.ucuenca.kodar.utils.nlp.Category;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
-import java.util.Map;
 import net.didion.jwnl.JWNLException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -39,7 +39,6 @@ import org.apache.mahout.clustering.evaluation.RepresentativePointsDriver;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.distance.CosineDistanceMeasure;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.math.Vector;
 
 /**
  * Discover potential networks of collaboration and similar knowledge areas.
@@ -52,7 +51,8 @@ public class Clustering {
     private String datasetPath;
     private boolean translate = false;
     private boolean evaluate = false;
-    private double interClusterDensity;
+    private double interClusterDensityKmeans;
+    private double interClusterDensityFkmeans;
 
     private final Controller controller;
     private final Writer writer = Writer.getWriteSequenceFile();
@@ -116,32 +116,33 @@ public class Clustering {
         executeKmeans(k);
         executeFuzzyKmeans();
 
+        // To evaluate, we calculate k, we do not need labelling.
+        if (evaluate) {
+            evaluateCluster(conf);
+            return;
+        }
         writer.writeClusterVector(new Path(KMEANS.getPath(), "clusteredPoints/part-m-0"),
                 new Path(KMEANS.getPath()));
 
-//        ClusterDumper clusterDumper = new ClusterDumper(new Path("kodar_home/kmeans/clusters-1-final"),
-//                new Path("kodar_home/kmeans/clusteredPoints"));
-//        clusterDumper.printClusters(null);
-        //Path outputFinalClustersPath = new Path(KMEANS.getPath(), "clusters-*-final/*");
         joinCLusterResults(KMEANS);
         joinCLusterResults(FKMEANS);
 
         labelCLusters();
 
-        // Label clusters
         exportFiles();
-
-        if (evaluate) {
-            evaluateCluster(conf);
-        }
     }
 
     private void preprocessData() throws IOException {
-        // Preprocess data
+        // Separate keywords of remainning fields. 
         writer.disjoin(new File(datasetPath), RAW_DATA, translate);
 
+        /* The conversion of keywords to Sequence format is done twice because 
+            there is the necessity of both files one of IntegerWritable type and 
+            another one of Text type. */
         controller.rawToSequenceTextKey(new File(RAW_DATA, "keywords.csv"), new Path(SEQUENCE_DATA.getPath(), "output"), ",");
         controller.rawToSequenceLongKey(new File(RAW_DATA, "keywords.csv"), new Path(SEQUENCE_DATA.getPath(), "outputLong"), ",");
+
+        // Conversion of remainning fields to SequenceFile format.
         controller.rawToSequenceLongKey(new File(RAW_DATA, "authors.csv"), new Path(SEQUENCE_DATA.getPath(), "outputAuthors"), ",");
     }
 
@@ -179,10 +180,11 @@ public class Clustering {
     }
 
     private void executeFuzzyKmeans() throws Exception {
+        String clustersKmeans = KMEANS.getPath() + "/" + getFinalPath(KMEANS.getPath());
 
         String[] fuzzykmeans = new String[]{
             "-i", new File(SPARSE_VECTORS, "tfidf-vectors").getPath(),
-            "-c", new File(KMEANS, "clusters-1-final").getPath(),
+            "-c", clustersKmeans,
             "-o", FKMEANS.getPath(),
             "-dm", CosineDistanceMeasure.class.getName(),
             "-m", "1.8",
@@ -237,8 +239,13 @@ public class Clustering {
         String delimiter = "2db5c8", escapeContent = " Content: ", escapeAuthor = " Author:",
                 escapeTitle = " Title: ";
 
+
         FileSystem fs = FileSystem.get(conf);
         Path TEMP = new Path(TOPMODEL.getPath(), "part000");
+        File _documents = new File(TOPMODEL.getPath(), "documents");
+
+        createDir(_documents, false);
+
         HadoopUtil.delete(conf, new Path(NAMED_CLUSTERS.getPath()));
 
         FileStatus[] folders = fs.listStatus(new Path(MR_JOBS.getPath()));
@@ -259,16 +266,19 @@ public class Clustering {
                 Path fileNamedClusters = new Path(NAMED_CLUSTERS.getPath(), folder.getPath().getName());
                 SequenceFile.Writer writeCluster = new SequenceFile.Writer(fs, conf, fileNamedClusters, Text.class, Text.class);
 
+                int numDocs = 0;
                 System.out.println("Reading: " + file.getPath());
                 while (reader.next(k, v)) {
-                //for (int i = 0; i < 2; i++) {
 
-                    //reader.next(k, v);
                     String[] values = v.toString().split(delimiter);
                     int id = 0;
 
                     SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, TEMP, Text.class, Text.class);
+                    File _docs = new File(_documents, "docs" + numDocs);
+                    createDir(_docs, false);
                     for (String value : values) {
+                        File _doc = new File(_docs, "doc" + id);
+                        createDir(_doc, true);
                         kws = value.substring(value.indexOf(escapeContent) + escapeContent.length(),
                                 value.indexOf(escapeAuthor));
                         title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
@@ -277,13 +287,26 @@ public class Clustering {
                         document = title + "\n" + kws + "\n" + c.toString();
                         id++;
                         writer.append(new Text(String.valueOf(id)), new Text(document));
+
+                        // Write documents in raw text
+                        try (FileOutputStream out = new FileOutputStream(_doc)) {
+                            out.write(document.getBytes());
+                        }
                     }
                     writer.close();
                     Tagger tagger = new Tagger();
+                    // Labelling using CVB algorithm.
                     String label = tagger.tag(TEMP.toString());
+
+                    File _label = new File(_docs, "label");
+                    createDir(_label, true);
+                    try (FileOutputStream out = new FileOutputStream(_label)) {
+                        out.write(label.getBytes());
+                    }
+
                     writeCluster.append(new Text(label), v);
                     HadoopUtil.delete(conf, TEMP);
-                    //}
+                    numDocs++;
                 }
                 writeCluster.close();
             }
@@ -308,7 +331,7 @@ public class Clustering {
         }
     }
 
-    private void evaluateCluster(Configuration conf) throws InterruptedException, IOException, ClassNotFoundException {
+    private void evaluateCluster(Configuration conf) throws InterruptedException, IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         HadoopUtil.delete(conf, new Path(EVALUATION.getPath()));
 
         DistanceMeasure measure = new CosineDistanceMeasure();
@@ -319,23 +342,19 @@ public class Clustering {
                 numIterations, false);
         //RepresentativePointsDriver.printRepresentativePoints(new Path(EVALUATION.getPath()), numIterations);
         // var clustersIn
-        File folder = new File(KMEANS.getPath());
-        String clustersInStr = "";
-        for (String file : folder.list()) {
-            if (file.contains("final")) {
-                clustersInStr = file;
-                break;
-            }
-        }
-        ClusterEvaluator evaluator = new ClusterEvaluator(conf, new Path(KMEANS.getPath(), clustersInStr));
-        interClusterDensity = evaluator.interClusterDensity();
+        String clustersInStrKmeans = getFinalPath(KMEANS.getPath());
+        String clustersInStrFkmeans = getFinalPath(FKMEANS.getPath());
+        ClusterEvaluator evaluatorKmeans = new ClusterEvaluator(conf, new Path(KMEANS.getPath(), clustersInStrKmeans));
+        ClusterEvaluator evaluatorFkmeans = new ClusterEvaluator(conf, new Path(FKMEANS.getPath(), clustersInStrFkmeans));
+        interClusterDensityKmeans = evaluatorKmeans.interClusterDensity();
+        interClusterDensityFkmeans = evaluatorFkmeans.interClusterDensity();
 
-        for (Map.Entry<Integer, Vector> entry : evaluator.interClusterDistances().entrySet()) {
-            System.out.println(entry.getKey());
-            System.out.println(entry.getValue());
-        }
-
-        System.out.println(evaluator.intraClusterDensities());
+//        for (Map.Entry<Integer, Vector> entry : evaluator.interClusterDistances().entrySet()) {
+//            System.out.println(entry.getKey());
+//            System.out.println(entry.getValue());
+//        }
+//
+//        System.out.println(evaluator.intraClusterDensities());
 //        System.out.println(evaluator.interClusterDensity());
 //        System.out.println(evaluator.intraClusterDensity());
 //
@@ -348,7 +367,6 @@ public class Clustering {
 //            System.out.println("key=" + key);
 //            System.out.println("value=" + v.asFormatString());
 //        }
-
         //<editor-fold defaultstate="collapsed" desc="Read clustered Points, which contains the final mapping from clusterId to documentId">
 //        FileSystem fs = FileSystem.get(conf);
 //        SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(clusteredPointsIn, "part-m-0"), conf);
@@ -377,6 +395,18 @@ public class Clustering {
 //                    + key.toString());
 //        }
 //</editor-fold>
+    }
+
+    private String getFinalPath(String path) {
+        File folder = new File(path);
+        String clustersInStr = "";
+        for (String file : folder.list()) {
+            if (file.contains("final")) {
+                clustersInStr = file;
+                break;
+            }
+        }
+        return clustersInStr;
     }
 
     /**
@@ -430,19 +460,51 @@ public class Clustering {
     }
 
     /**
-     * Returns the Inter-cluster density. Inter-cluster distance is a good
-     * measure of clustering quality; good clusters probably don’t have
-     * centroids that are too close to each other, because this would indicate
-     * that the clustering process is creating groups with similar features, and
-     * perhaps drawing distinctions between cluster members that are hard to
-     * support.
+     * Returns the Inter-cluster density for K-means algorithm. Inter-cluster
+     * distance is a good measure of clustering quality; good clusters probably
+     * don’t have centroids that are too close to each other, because this would
+     * indicate that the clustering process is creating groups with similar
+     * features, and perhaps drawing distinctions between cluster members that
+     * are hard to support.
      *
      * Remember to set true the evaluate.
      *
      * @return
      */
-    public double getInterClusterDensity() {
-        return interClusterDensity;
+    public double getInterClusterDensityKmeans() {
+        return interClusterDensityKmeans;
+    }
+
+    /**
+     * Returns the Inter-cluster density for Fuzzy K Means algorithm.
+     * Inter-cluster distance is a good measure of clustering quality; good
+     * clusters probably don’t have centroids that are too close to each other,
+     * because this would indicate that the clustering process is creating
+     * groups with similar features, and perhaps drawing distinctions between
+     * cluster members that are hard to support.
+     *
+     * Remember to set true the evaluate.
+     *
+     * @return
+     */
+    public double getInterClusterDensityFuzzyKmeans() {
+        return interClusterDensityFkmeans;
+    }
+
+    /**
+     * Creates a directory or file.
+     *
+     * @param file
+     * @param isFile true is @param file is a file.
+     */
+    private void createDir(File file, boolean isFile) throws IOException {
+        if (isFile) {
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+        } else if (!file.exists()) {
+            file.mkdir();
+        }
     }
 
 }
