@@ -19,6 +19,8 @@ import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -42,6 +44,7 @@ import org.apache.mahout.math.VectorWritable;
 public class Writer {
 
     private static Writer instanceWriter = new Writer();
+    private Logger log = Logger.getLogger(Writer.class.getName());
     private final String URL_TRANSLATE_ES_EN = "http://190.15.141.85:8080/marmottatest/pubman/translate?";
 
     private Writer() {
@@ -154,6 +157,8 @@ public class Writer {
         outKeywords.flush();
         outAuthors.close();
         outKeywords.close();
+
+        log.log(Level.INFO, "Authors and remaining fields separeted.");
     }
 
     public void writeVector(Path pathVectorFile, Path pathToSave) throws IOException, Exception {

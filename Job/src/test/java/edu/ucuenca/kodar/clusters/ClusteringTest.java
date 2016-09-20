@@ -8,7 +8,9 @@ package edu.ucuenca.kodar.clusters;
 import junit.framework.TestCase;
 
 /**
- *
+ * Path for evaluation. 
+ * src/test/resources/edu/ucuenca/kodar/data/evaluation.csv
+ * 
  * @author Xavier Sumba <xavier.sumba93@ucuenca.ec>
  */
 public class ClusteringTest extends TestCase {

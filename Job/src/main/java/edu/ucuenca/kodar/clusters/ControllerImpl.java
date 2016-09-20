@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,6 +29,8 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.mahout.clustering.fuzzykmeans.FuzzyKMeansDriver;
 import org.apache.mahout.clustering.kmeans.KMeansDriver;
 import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
@@ -43,6 +46,7 @@ import org.apache.mahout.vectorizer.SparseVectorsFromSequenceFiles;
 public class ControllerImpl implements Controller {
 
     private final Configuration conf;
+    private Logger log = Logger.getLogger(ControllerImpl.class.getName());
 
     public ControllerImpl(Configuration conf) {
         this.conf = conf;
@@ -52,27 +56,32 @@ public class ControllerImpl implements Controller {
     public void rawToSequenceTextKey(File inputFile, Path outputFile, String delimiter) throws IOException {
         RawToSequence seq = new RawToSequence(conf);
         seq.convert(inputFile, outputFile, delimiter, Text.class);
+        log.log(Level.INFO, String.format("File %s converted to Sequence File format <Text, Text> in %s", inputFile.toString(), outputFile.toString()));
     }
 
     @Override
     public void rawToSequenceLongKey(File inputFile, Path outputFile, String delimiter) throws IOException {
         RawToSequence seq = new RawToSequence(conf);
         seq.convert(inputFile, outputFile, delimiter, LongWritable.class);
+        log.log(Level.INFO, String.format("File %s converted to Sequence File format <LongWritable, Text> in %s", inputFile.toString(), outputFile.toString()));
     }
 
     @Override
     public void seq2Sparse(String[] seq2SparseArgs) throws Exception {
         ToolRunner.run(conf, new SparseVectorsFromSequenceFiles(), seq2SparseArgs);
+        log.log(Level.INFO, String.format("seq2sparse executed with the arguments \n%s", Arrays.toString(seq2SparseArgs)));
     }
 
     @Override
     public void kmeans(String[] kmeansArgs) throws Exception {
         ToolRunner.run(conf, new KMeansDriver(), kmeansArgs);
+        log.log(Level.INFO, String.format("kmeans executed with the following arguments \n%s", Arrays.toString(kmeansArgs)));
     }
 
     @Override
     public void fuzzyKmeans(String[] fuzzykmeansArgs) throws Exception {
         ToolRunner.run(conf, new FuzzyKMeansDriver(), fuzzykmeansArgs);
+        log.log(Level.INFO, String.format("fuzzykmeans executed with the arguments \n%s", Arrays.toString(fuzzykmeansArgs)));
     }
 
     @Override
@@ -87,7 +96,10 @@ public class ControllerImpl implements Controller {
 
     @Override
     public void rowId(String[] rowIdArgs) throws Exception {
-        ToolRunner.run(new RowIdJob(), rowIdArgs);
+        // Force to add IO paths to HADOOP, for some reason do not automatically load from rowIdArgs.
+        conf.set("mapred.input.dir", rowIdArgs[1]);
+        conf.set("mapred.output.dir", rowIdArgs[3]);
+        ToolRunner.run(conf, new RowIdJob(), rowIdArgs);
     }
 
     @Override

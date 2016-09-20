@@ -47,6 +47,10 @@ public class Tagger {
             "-i", BASE_PATH + "target/kodar_home/topmodel/sparse/tf-vectors",
             "-o", BASE_PATH + "target/kodar_home/topmodel/convert"
         };
+
+        // The library should not be aware of _SUCESS files, but it does; for this reason, I delete this file manually.
+        HadoopUtil.delete(conf, new Path(BASE_PATH + "target/kodar_home/topmodel/sparse/tf-vectors/_SUCCESS"));
+
         base.rowId(rowIdArgs);
 
         Path path_cvb = new Path(BASE_PATH + "target/kodar_home/topmodel/cvb");
