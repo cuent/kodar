@@ -504,7 +504,7 @@ public class Clustering {
                 file.createNewFile();
             }
         } else if (!file.exists()) {
-            file.mkdir();
+            file.mkdirs();
         }
     }
 
