@@ -33,7 +33,7 @@ public class Execute {
             Clustering c = new Clustering(args[0]);
             c.setTranslate(Boolean.parseBoolean(args[1]));
             c.run(150);
-        } else {
+        } else { 
             throw new Exception("ERROR: Invalid number of arguments");
         }
     }

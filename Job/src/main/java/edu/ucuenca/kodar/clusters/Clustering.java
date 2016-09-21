@@ -284,7 +284,8 @@ public class Clustering {
                         title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
                         Category c = new Category(kws);
                         c.populate();
-                        document = title + "\n" + kws + "\n" + c.toString();
+                        //document = title + "\n" + kws + "\n" + c.toString();
+                        document = kws;
                         id++;
                         writer.append(new Text(String.valueOf(id)), new Text(document));
 

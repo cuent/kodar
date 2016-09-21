@@ -23,6 +23,8 @@ public class Tagger {
     private static final String BASE_PATH = System.getProperty("user.dir") + "/";
 
     public String tag(String inputPath) throws IOException, Exception {
+        String label = null;
+
         //Hadoop Configuration
         Configuration conf = new Configuration();
 
@@ -62,7 +64,7 @@ public class Tagger {
             "-o", BASE_PATH + "target/kodar_home/topmodel/cvb/topic-term",
             "-dt", BASE_PATH + "target/kodar_home/topmodel/cvb/doc-topic/topic-model-cvb",
             "-mt", BASE_PATH + "target/kodar_home/topmodel/cvb",
-            "-k", "1",
+            "-k", "10",
             "-x", "20",
             "-ow"
         };
@@ -82,13 +84,36 @@ public class Tagger {
         //Read label from text file
         BufferedReader br = new BufferedReader(new FileReader(BASE_PATH + "target/kodar_home/topmodel/vectorDump"));
         String line = br.readLine();
-        if (line != null) {
-            line = line.substring(line.indexOf("{") + 1, line.indexOf(":"));
-        } else {
-            line = "No Label";
+
+        if (line == null) {
+            return "No Label";
+        }
+
+        double scoreAux = Double.MIN_VALUE;
+        String auxLabel = "";
+        while (line != null) {
+            double score = 0.0;
+            try {
+                score = Double.parseDouble(line.substring(line.indexOf(":") + 1, line.length() - 1));
+                auxLabel = line.substring(line.indexOf("{") + 1, line.indexOf(":"));
+            } catch (StringIndexOutOfBoundsException e) {
+                line = br.readLine();
+                continue;
+            }
+            if (score > scoreAux) {
+                scoreAux = score;
+                label = auxLabel;
+            } else if (Double.isNaN(score)) {
+                label = auxLabel;
+            }
+            line = br.readLine();
         }
         br.close();
 
-        return line;
+        if (label == null) {
+            return "No Label";
+        }
+
+        return label;
     }
 }
