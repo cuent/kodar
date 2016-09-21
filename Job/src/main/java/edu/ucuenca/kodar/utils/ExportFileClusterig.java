@@ -73,7 +73,6 @@ public class ExportFileClusterig {
                 bw.write(newline);
             }
 
-            
         }
 
         System.out.println("File written in " + pathToWrite);
@@ -122,9 +121,9 @@ public class ExportFileClusterig {
                     //uriP = URIUtil.encodeQuery(uriP);
 
                     Resource r = model.createResource(clusterURI + cluster);
-                    r.addProperty(hasPerson, model.createResource(uriA));
+                    r.addProperty(foafPublication, model.createResource(uriP));
                     r.addProperty(RDFS.label, k.toString());
-                    model.createResource(uriA).addProperty(foafPublication, model.createResource(uriP));
+                    model.createResource(uriP).addProperty(hasPerson, model.createResource(uriA));
                 }
             }
         }
