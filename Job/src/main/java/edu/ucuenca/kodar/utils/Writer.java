@@ -42,27 +42,27 @@ import org.apache.mahout.math.VectorWritable;
  * @author cuent
  */
 public class Writer {
-
+    
     private static Writer instanceWriter = new Writer();
     private Logger log = Logger.getLogger(Writer.class.getName());
     private final String URL_TRANSLATE_ES_EN = "http://190.15.141.85:8080/marmottatest/pubman/translate?";
-
+    
     private Writer() {
     }
-
+    
     public static Writer getWriteSequenceFile() {
         return instanceWriter;
     }
-
+    
     public void writeClusterVector(Path pathVectorFile, Path pathToSave) throws IOException {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
         SequenceFile.Reader reader = new SequenceFile.Reader(fs, pathVectorFile, conf);
-
+        
         File file = new File(pathToSave.toString(), "clusters.csv");
         FileWriter fr = new FileWriter(file);
         BufferedWriter bw = new BufferedWriter(fr);
-
+        
         IntWritable key = new IntWritable();
         WeightedPropertyVectorWritable value = new WeightedPropertyVectorWritable();
         double valueElement = 0;
@@ -72,7 +72,7 @@ public class Writer {
             while (it.hasNext()) {
                 Vector.Element element = (Vector.Element) it.next();
                 valueElement = element.get();
-
+                
                 if (it.hasNext()) {
                     bw.write(valueElement + ",");
                 } else {
@@ -85,51 +85,51 @@ public class Writer {
         bw.flush();
         bw.close();
     }
-
+    
     public void disjoin(File inputFile, File outputPath, boolean translate) throws FileNotFoundException, IOException {
         FileReader filereader = new FileReader(inputFile);
         BufferedReader br = new BufferedReader(filereader);
         HttpClient httpClient = HttpClients.createDefault();
-
+        
         if (!outputPath.exists()) {
             outputPath.mkdir();
         }
-
+        
         BufferedWriter outAuthors = new BufferedWriter(new FileWriter(new File(outputPath, "authors.csv")));
         BufferedWriter outKeywords = new BufferedWriter(new FileWriter(new File(outputPath, "keywords.csv")));
-
+        
         String line = br.readLine();
         String newline = System.getProperty("line.separator");
         int id = 0;
         String keywords;
-
+        
         while ((line = br.readLine()) != null) {
             String[] fields = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1);
-
+            
             outKeywords.write(String.valueOf(id) + ",");
             outAuthors.write(String.valueOf(id) + ",");
-
+            
             for (int i = 0; i < fields.length; i++) {
                 if (i == 4) {
                     keywords = fields[i];
-                    if (translate) {
+                    if (!Service.getInstance().detectLanguage(keywords).equals("en")) {
                         String kwEncoded = URLEncoder.encode(keywords, "UTF-8");
                         HttpPost post = new HttpPost(URL_TRANSLATE_ES_EN + "totranslate=" + kwEncoded);
-
+                        
                         post.addHeader("Content-Type", "application/x-www-form-urlencoded");
                         post.addHeader("Accept", "application/ld+json");
-
+                        
                         HttpResponse response = httpClient.execute(post);
                         HttpEntity entity = response.getEntity();
-
+                        
                         if (entity != null) {
                             BufferedReader reader = null;
                             try {
                                 reader = new BufferedReader(new InputStreamReader(entity.getContent(), "UTF-8"));
-
+                                
                                 String jsonResult = reader.readLine();
                                 String kwTranslated = ((JsonObject) new JsonParser().parse(jsonResult)).get("result").toString();
-
+                                
                                 outKeywords.write(kwTranslated);
                             } catch (Exception e) {
                                 outKeywords.write(keywords);
@@ -147,29 +147,29 @@ public class Writer {
                     outAuthors.write(",");
                 }
             }
-
+            
             outKeywords.write(newline);
             outAuthors.write(newline);
             id++;
         }
-
+        
         outAuthors.flush();
         outKeywords.flush();
         outAuthors.close();
         outKeywords.close();
-
+        
         log.log(Level.INFO, "Authors and remaining fields separeted.");
     }
-
+    
     public void writeVector(Path pathVectorFile, Path pathToSave) throws IOException, Exception {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
         SequenceFile.Reader reader = new SequenceFile.Reader(fs, pathVectorFile, conf);
-
+        
         File file = new File(pathToSave.toString(), "tfidf.csv");
         FileWriter fr = new FileWriter(file);
         BufferedWriter bw = new BufferedWriter(fr);
-
+        
         List<Tuple<Text, IntWritable>> dictionary = Printer.getReadSequenceFile().readSequenceFile(
                 new Path(Clustering.SPARSE_VECTORS.toString(), "dictionary.file-0"), Text.class,
                 IntWritable.class);
@@ -186,7 +186,7 @@ public class Writer {
         }
         bw.write(header.toString());
         bw.write("\n");
-
+        
         Text key = new Text();
         VectorWritable value = new VectorWritable();
         double valueElement = 0;
@@ -195,11 +195,11 @@ public class Writer {
             Iterator it = value.get().all().iterator();
             String name = ((NamedVector) value.get()).getName();
             bw.write("doc" + docid++ + "_" + name + ",");
-
+            
             while (it.hasNext()) {
                 Vector.Element element = (Vector.Element) it.next();
                 valueElement = element.get();
-
+                
                 if (it.hasNext()) {
                     bw.write(valueElement + ",");
                 } else {
@@ -212,5 +212,5 @@ public class Writer {
         bw.flush();
         bw.close();
     }
-
+    
 }
