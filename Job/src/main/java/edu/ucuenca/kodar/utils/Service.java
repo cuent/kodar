@@ -80,7 +80,7 @@ public class Service {
                 HttpResponse response = httpClient.execute(request);
                 HttpEntity entity = response.getEntity();
 
-                if (entity != null) {
+                if (entity != null && response.getStatusLine().getStatusCode() == 200) {
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent(), "UTF-8"))) {
                         String jsonResult = reader.readLine();
                         Object parser = new JsonParser().parse(jsonResult);
