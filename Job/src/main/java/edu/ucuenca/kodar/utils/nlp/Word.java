@@ -51,11 +51,11 @@ public class Word {
         this.value = value;
     }
 
-    public ArrayList<String> getDefinition() {
+    public ArrayList<String> getDefinitions() {
         return definitions;
     }
 
-    public void setDefinition(ArrayList<String> definition) {
+    public void setDefinitions(ArrayList<String> definition) {
         this.definitions = definition;
     }
 
@@ -97,22 +97,22 @@ public class Word {
         words.append(value);
         words.append(newline);
 
-        for (String definition : definitions) {
-            words.append(definition);
-            words.append(newline);
-        }
-        for (String hyper : hypernymy) {
-            words.append(hyper);
-            words.append(newline);
-        }
+//        for (String definition : definitions) {
+//            words.append(definition);
+//            words.append(newline);
+//        }
+//        for (String hyper : hypernymy) {
+//            words.append(hyper);
+//            words.append(newline);
+//        }
         for (String hypon : hyponymy) {
             words.append(hypon);
             words.append(newline);
         }
-        for (String syn : synonym) {
-            words.append(syn);
-            words.append(newline);
-        }
+//        for (String syn : synonym) {
+//            words.append(syn);
+//            words.append(newline);
+//        }
         for (String sim : similar) {
             words.append(sim);
             words.append(newline);
