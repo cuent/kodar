@@ -94,7 +94,7 @@ public class Category {
             Word w = corpus.containsKey(word.getLemma())
                     ? corpus.get(word.getLemma())
                     : new Word(word.getLemma());
-            w.getDefinition().add(senses[i].getGloss());
+            w.getDefinitions().add(senses[i].getGloss());
             corpus.put(word.getLemma(), w);
         }
     }
