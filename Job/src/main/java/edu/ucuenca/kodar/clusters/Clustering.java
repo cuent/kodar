@@ -17,6 +17,7 @@
  */
 package edu.ucuenca.kodar.clusters;
 
+import edu.uc.mahout.base.topicmodel.Cortical;
 import edu.uc.mahout.base.topicmodel.SortMapperJob;
 import edu.uc.mahout.base.topicmodel.Tagger;
 import edu.ucuenca.kodar.utils.ExportFileClusterig;
@@ -49,7 +50,8 @@ public class Clustering {
 
     private Date time;
     private String datasetPath;
-    private boolean translate = false;
+    private boolean isCortical = false;
+    private boolean isMahout = true;
     private boolean evaluate = false;
     private double interClusterDensityKmeans;
     private double interClusterDensityFkmeans;
@@ -134,7 +136,7 @@ public class Clustering {
 
     private void preprocessData() throws IOException {
         // Separate keywords of remainning fields. 
-        writer.disjoin(new File(datasetPath), RAW_DATA, translate);
+        writer.disjoin(new File(datasetPath), RAW_DATA);
 
         /* The conversion of keywords to Sequence format is done twice because 
             there is the necessity of both files one of IntegerWritable type and 
@@ -239,7 +241,6 @@ public class Clustering {
         String delimiter = "2db5c8", escapeContent = " Content: ", escapeAuthor = " Author:",
                 escapeTitle = " Title: ";
 
-
         FileSystem fs = FileSystem.get(conf);
         Path TEMP = new Path(TOPMODEL.getPath(), "part000");
         File _documents = new File(TOPMODEL.getPath(), "documents");
@@ -276,6 +277,9 @@ public class Clustering {
                     SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, TEMP, Text.class, Text.class);
                     File _docs = new File(_documents, "docs" + numDocs);
                     createDir(_docs, false);
+
+                    Cortical cortical = new Cortical();
+
                     for (String value : values) {
                         File _doc = new File(_docs, "doc" + id);
                         createDir(_doc, true);
@@ -284,11 +288,17 @@ public class Clustering {
                         title = value.substring(value.indexOf(escapeTitle) + escapeTitle.length());
                         Category c = new Category(kws);
                         c.populate();
-                        //document = title + "\n" + kws + "\n" + c.toString();
-                        document = kws;
-                        id++;
-                        writer.append(new Text(String.valueOf(id)), new Text(document));
+                        document = title + "\n" + kws + "\n" + c.toString();
+                        //document = kws;
 
+                        // Execution with Cortical API
+                        if (isCortical) {
+                            cortical.addLabels(document);
+                        } else if (isMahout) {
+                            writer.append(new Text(String.valueOf(id)), new Text(document));
+                        }
+
+                        id++;
                         // Write documents in raw text
                         try (FileOutputStream out = new FileOutputStream(_doc)) {
                             out.write(document.getBytes());
@@ -297,15 +307,25 @@ public class Clustering {
                     writer.close();
                     Tagger tagger = new Tagger();
                     // Labelling using CVB algorithm.
-                    String label = tagger.tag(TEMP.toString());
 
-                    File _label = new File(_docs, "label");
-                    createDir(_label, true);
-                    try (FileOutputStream out = new FileOutputStream(_label)) {
-                        out.write(label.getBytes());
+                    if (isMahout) {
+                        String label = tagger.tag(TEMP.toString());
+                        File _label = new File(_docs, "label");
+                        createDir(_label, true);
+                        try (FileOutputStream out = new FileOutputStream(_label)) {
+                            out.write(label.getBytes());
+                        }
+                        writeCluster.append(new Text(label), v);
+                    } else if (isCortical) {
+                        String labelCortical = cortical.getLabel();
+                        File _labelCortical = new File(_docs, "labelCortical");
+                        createDir(_labelCortical, true);
+                        try (FileOutputStream out = new FileOutputStream(_labelCortical)) {
+                            out.write(labelCortical.getBytes());
+                        }
+                        writeCluster.append(new Text(labelCortical), v);
                     }
 
-                    writeCluster.append(new Text(label), v);
                     HadoopUtil.delete(conf, TEMP);
                     numDocs++;
                 }
@@ -428,19 +448,6 @@ public class Clustering {
         this.datasetPath = datasetPath;
     }
 
-    public boolean isTranslate() {
-        return translate;
-    }
-
-    /**
-     * Set <code>true</code> if you want to translate the keywords field.
-     *
-     * @param translate
-     */
-    public void setTranslate(boolean translate) {
-        this.translate = translate;
-    }
-
     /**
      * Return true if it is executing in evaluate mode.
      *
@@ -505,6 +512,53 @@ public class Clustering {
             }
         } else if (!file.exists()) {
             file.mkdirs();
+        }
+    }
+
+    /**
+     * Return true it is executing the labeling work-flow with Cortical.
+     *
+     * @return the isCortical
+     */
+    public boolean isExecutingWithCortical() {
+        return isCortical;
+    }
+
+    /**
+     * Set to label each cortical using Cortical.
+     *
+     * @param isCortical the isCortical to set
+     */
+    public void executeWithCortical(boolean isCortical) {
+        this.isCortical = isCortical;
+        if (isCortical) {
+            this.isMahout = false;
+        } else {
+            this.isMahout = true;
+        }
+    }
+
+    /**
+     * Return true it is executing the labeling work-flow with Apache Mahout.
+     *
+     * @return the isMahout
+     */
+    public boolean isExecutingWithMahout() {
+        return isMahout;
+    }
+
+    /**
+     * Set to label each cortical using Cortical. Executes by default with
+     * Mahout.
+     *
+     * @param isMahout
+     */
+    public void executeWithMahoutl(boolean isMahout) {
+        this.isMahout = isMahout;
+        if (isMahout) {
+            this.isCortical = false;
+        } else {
+            this.isCortical = true;
         }
     }
 

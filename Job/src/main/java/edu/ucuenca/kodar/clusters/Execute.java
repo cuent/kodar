@@ -17,23 +17,21 @@
  */
 package edu.ucuenca.kodar.clusters;
 
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.PropertyConfigurator;
 
 /**
  * Executes the clustering Job.
- * 
- * @author Xavier Sumba <xavier.sumba93@ucuenca.ec> 
+ *
+ * @author Xavier Sumba <xavier.sumba93@ucuenca.ec>
  */
 public class Execute {
 
     public static void main(String[] args) throws Exception {
         PropertyConfigurator.configure("log4j.properties");
-        if (args.length == 2) {
+        if (args.length >= 1) {
             Clustering c = new Clustering(args[0]);
-            c.setTranslate(Boolean.parseBoolean(args[1]));
-            c.run(150);
-        } else { 
+            c.run(16);
+        } else {
             throw new Exception("ERROR: Invalid number of arguments");
         }
     }
