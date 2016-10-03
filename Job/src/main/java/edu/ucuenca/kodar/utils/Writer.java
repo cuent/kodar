@@ -86,7 +86,7 @@ public class Writer {
         bw.close();
     }
     
-    public void disjoin(File inputFile, File outputPath, boolean translate) throws FileNotFoundException, IOException {
+    public void disjoin(File inputFile, File outputPath) throws FileNotFoundException, IOException {
         FileReader filereader = new FileReader(inputFile);
         BufferedReader br = new BufferedReader(filereader);
         HttpClient httpClient = HttpClients.createDefault();
