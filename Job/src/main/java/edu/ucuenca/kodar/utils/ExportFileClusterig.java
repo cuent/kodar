@@ -79,7 +79,7 @@ public class ExportFileClusterig {
         bw.close();
     }
 
-    static String clusterURI = "http://ucuenca.edu.ec/resource/cluster";
+    static String clusterURI = "http://http://localhost:8080/resource/cluster/cluster";
 
     public void writeResultFileRDF(String pathFileInput, String pathToWrite) throws IOException {
         //create an empty model
