@@ -32,7 +32,7 @@ public class Evaluate {
         List<Double> interclusterdensitiesKMeans = new LinkedList<>();
         List<Double> interclusterdensitiesFkMeans = new LinkedList<>();
         for (int i = start; i <= end; i += inc) {
-            Clustering c = new Clustering("/home/cuent/Downloads/tuple.csv");
+            Clustering c = new Clustering("/home/cuent/Downloads/ultimo.csv");
             //Clustering c = new Clustering("src/test/resources/edu/ucuenca/kodar/data/evaluation.csv");
             c.setEvaluation(true);
             c.run(i);
@@ -59,6 +59,6 @@ public class Evaluate {
         PropertyConfigurator.configure("log4j.properties");
 
         Evaluate e = new Evaluate();
-        e.elbowMethod(50, 600, 50);
+        e.elbowMethod(20, 600, 50);
     }
 }

@@ -28,11 +28,23 @@ public class Execute {
 
     public static void main(String[] args) throws Exception {
         PropertyConfigurator.configure("log4j.properties");
-        if (args.length >= 1) {
-            Clustering c = new Clustering(args[0]);
-            c.run(16);
-        } else {
-            throw new Exception("ERROR: Invalid number of arguments");
+        switch (args.length) {
+            case 2:
+                {
+                    ElbowMethod em = new ElbowMethod();
+                    int k = em.run(20, 600, 20, Double.parseDouble(args[1]), args[0]);
+                    Clustering c = new Clustering(args[0]);
+                    c.run(k);
+                    break;
+                }
+            case 3:
+                {
+                    Clustering c = new Clustering(args[0]);
+                    c.run(Integer.parseInt(args[2]));
+                    break;
+                }
+            default:
+                throw new Exception("ERROR: Invalid number of arguments");
         }
     }
 
